@@ -508,15 +508,18 @@ f"- AI generation failed\n- {str(e)}"
 #  ROUTES
 # ══════════════════════════════════════════════════════════════
 
-@app.get("/health")
-def health():
-    return {
-        "status":           "ok",
-        "iverilog_path":    IVERILOG,
-        "iverilog_version": iverilog_version(),
-        "ai_provider":      _ai_provider or "none (template fallback)",
-        "ai_available":     _ai_provider is not None,
-        "timestamp":        time.time(),
+# Modify it to look exactly like this:
+
+@app.get("/health")  
+@app.head("/health")  
+def health():  
+    return {  
+        "status":           "ok",  
+        "iverilog_path":    IVERILOG,  
+        "iverilog_version": iverilog_version(),  
+        "ai_provider":      _ai_provider or "none (template fallback)",  
+        "ai_available":     _ai_provider is not None,  
+        "timestamp":        time.time(),  
     }
 
 @app.post("/generate-design")
