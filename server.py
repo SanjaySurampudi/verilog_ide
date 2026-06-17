@@ -385,7 +385,7 @@ def _call_openrouter(prompt: str) -> str:
         headers={
             "Authorization": f"Bearer {_ai_client}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:8001",
+            "HTTP-Referer": "https://verilog-ide-backend.onrender.com",
         }
     )
     with urllib.request.urlopen(req, timeout=30) as r:
