@@ -1,5 +1,5 @@
 r"""
-VerilogIDE Backend — FastAPI + Icarus Verilog v12 + Yosys
+VerilogIDE Backend — FastAPI + Icarus Verilog v12
 Place in:  A:\T HUB\jarvis_web\verilog_backend\server.py
 Run:       uvicorn server:app --reload --port 8001   (NOT python server.py)
 
@@ -10,6 +10,12 @@ AI PROVIDER PRIORITY (first key found wins — all are FREE):
   4. OPENROUTER_KEY   → OpenRouter free models         (openrouter.ai)
   5. ANTHROPIC_API_KEY→ Anthropic Claude (paid)        (console.anthropic.com)
   6. No key           → Local template fallback        (always free, no internet)
+
+Set ONE of these in CMD before starting:
+  set GEMINI_API_KEY=AIza...
+  set GROQ_API_KEY=gsk_...
+  set NVIDIA_API_KEY=nvapi-...
+  set OPENROUTER_KEY=sk-or-...
 """
 
 import os, subprocess, tempfile, shutil, re, time, json
@@ -81,7 +87,7 @@ if not _ai_provider:
 #  FASTAPI APP
 # ══════════════════════════════════════════════════════════════
 
-app = FastAPI(title="VerilogIDE API", version="2.2.0")
+app = FastAPI(title="VerilogIDE API", version="2.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
@@ -89,7 +95,6 @@ app.add_middleware(
 
 IVERILOG = shutil.which("iverilog") or "iverilog"
 VVP      = shutil.which("vvp")      or "vvp"
-YOSYS    = shutil.which("yosys")    or "yosys"
 TIMEOUT  = 15
 
 _HERE = Path(__file__).parent
@@ -120,10 +125,6 @@ class FormatReq(BaseModel):
     code: str
     language: str = "verilog"
 
-class SynthReq(BaseModel):
-    design: str
-    language: str = "verilog"
-
 # ══════════════════════════════════════════════════════════════
 #  HELPERS
 # ══════════════════════════════════════════════════════════════
@@ -143,6 +144,21 @@ def parse_errors(raw: str, design_path: str, tb_path: Optional[str]) -> list:
     return out
 
 def extract_ports(code):
+    """
+    Handles every port declaration style in Verilog-95 and ANSI, AND
+    captures bit widths so testbench generation can declare correctly
+    sized regs/wires (e.g. reg [3:0] A; instead of reg A;).
+
+      input a, b, c;            body comma list, width 1
+      input [3:0] A, B;         bus + comma list, width 4
+      output reg [3:0] result;  output reg single, width 4
+      output reg zero, carry;   output reg comma list, width 1
+      input  [3:0] A, B,        ANSI header comma-terminated
+      input clk, rst            single-line ANSI header
+
+    Returns inputs/outputs as both a list of names (back-compat) AND a
+    list of {"name":..., "width":...} dicts under "inputs_w"/"outputs_w".
+    """
     SKIP = {
         "wire","reg","tri","supply0","supply1","wand","wor",
         "input","output","inout","integer","real","time",
@@ -206,14 +222,6 @@ def iverilog_version() -> str:
     except Exception as e:
         return str(e)
 
-def yosys_version() -> str:
-    try:
-        r = subprocess.run([YOSYS, "-V"], capture_output=True, text=True, timeout=4)
-        lines = (r.stdout or r.stderr or "").splitlines()
-        return lines[0] if lines else "unknown"
-    except Exception as e:
-        return "not installed/accessible"
-
 def _static_analysis(code: str, label: str) -> list:
     warns = []
     is_tb = label == "testbench.v"
@@ -221,14 +229,17 @@ def _static_analysis(code: str, label: str) -> list:
     for i, line in enumerate(code.splitlines(), 1):
         s = line.strip()
         if s.startswith("//"): continue
+        # Warn about comparing two numeric constants (always true/false)
         if "==" in s and re.search(r"\b\d+\b\s*==\s*\b\d+\b", s):
             warns.append({"file": label, "line": i, "severity": "warning",
                           "message": "Comparing two constants — always true/false?"})
+        # Warn about blocking assignment inside sequential always block
         if is_tb is False and re.search(r"\bposedge\b|\bnegedge\b", s):
             if "=" in s and "<=" not in s and "==" not in s and "!=" not in s:
                 warns.append({"file": label, "line": i, "severity": "warning",
                               "message": "Blocking assignment (=) in sequential always block — use non-blocking (<=)"})
 
+    # $finish check: ONLY warn for testbenches, never for design files
     if is_tb:
         if "$finish" not in code and "$stop" not in code:
             warns.append({"file": label, "line": 0, "severity": "warning",
@@ -269,6 +280,9 @@ no "TODO" or placeholder comments — every input must actually be driven.
 Design code:
 {design}"""
 
+# Phrases that indicate the AI left test vectors unimplemented — if any of
+# these appear with no real stimulus around them, we discard the AI output
+# and fall back to the guaranteed-exhaustive local template instead.
 _PLACEHOLDER_MARKERS = (
     "add test vector", "todo", "// fill in", "your test", "insert test",
     "drive inputs here", "test cases here", "stimulus here",
@@ -278,6 +292,9 @@ def _looks_like_placeholder_tb(code: str) -> bool:
     lower = code.lower()
     if any(marker in lower for marker in _PLACEHOLDER_MARKERS):
         return True
+    # Heuristic: testbench declares regs but never assigns most of them
+    # outside of the module port list (i.e. no "name = " or "name <= " or
+    # "name=" appears anywhere in the body).
     reg_names = re.findall(r"\breg\s+(\w+)\s*;", code)
     if reg_names:
         undriven = [n for n in reg_names if not re.search(rf"\b{re.escape(n)}\s*(<=|=)\s*[^=]", code)]
@@ -302,6 +319,7 @@ def _call_groq(prompt: str) -> str:
     return completion.choices[0].message.content
 
 def _call_nvidia(prompt: str) -> str:
+    """NVIDIA NIM — OpenAI-compatible API. Get a free key at build.nvidia.com"""
     import urllib.request
     payload = json.dumps({
         "model": "nvidia/llama-3.1-nemotron-70b-instruct",
@@ -351,11 +369,18 @@ def _call_anthropic(prompt: str) -> str:
     return msg.content[0].text
 
 def _clean_code(raw: str) -> str:
+    """Strip any markdown fences the model might add."""
     raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.M)
     raw = raw.replace("```", "").strip()
     return raw
 
 def _ai_generate(design: str, language: str) -> tuple[str, str]:
+    """
+    Returns (testbench_code, source_label).
+    Tries each available provider; if the result still looks like a
+    placeholder (undriven inputs / TODO comments), discards it and falls
+    back to the guaranteed-exhaustive local template instead.
+    """
     lang_label = "SystemVerilog" if language == "systemverilog" else "Verilog HDL"
     prompt = _TB_PROMPT.format(lang=lang_label, design=design)
 
@@ -379,25 +404,22 @@ def _ai_generate(design: str, language: str) -> tuple[str, str]:
         except Exception as e:
             print(f"[AI] {name} call failed: {e}")
 
+    # final fallback — local template, always works and always drives inputs
     return _template_tb(design), "template (offline)"
 
 # ══════════════════════════════════════════════════════════════
 #  ROUTES
 # ══════════════════════════════════════════════════════════════
 
-@app.get("/health")  
-@app.head("/health")
-def health():  
-    return {  
-        "status":           "ok",  
-        "iverilog_path":    IVERILOG,  
-        "iverilog_version": iverilog_version(),  
-        "yosys_path":       YOSYS,
-        "yosys_version":    yosys_version(),
-        "yosys_available":  shutil.which("yosys") is not None,
-        "ai_provider":      _ai_provider or "none (template fallback)",  
-        "ai_available":     _ai_provider is not None,  
-        "timestamp":        time.time(),  
+@app.get("/health")
+def health():
+    return {
+        "status":           "ok",
+        "iverilog_path":    IVERILOG,
+        "iverilog_version": iverilog_version(),
+        "ai_provider":      _ai_provider or "none (template fallback)",
+        "ai_available":     _ai_provider is not None,
+        "timestamp":        time.time(),
     }
 
 
@@ -543,93 +565,26 @@ def analyze(req: CompileReq):
         }
     }
 
-
-# ══════════════════════════════════════════════════════════════
-#  YOSYS SYNTHESIS ENDPOINT
-# ══════════════════════════════════════════════════════════════
-
-@app.post("/synthesize")
-def synthesize_design(req: SynthReq):
-    if shutil.which("yosys") is None:
-        return {
-            "success": False,
-            "error": "Yosys is not installed or not found in system PATH.",
-            "netlist": "",
-            "log": "Synthesis failed: Yosys executable not available."
-        }
-
-    tmp = tempfile.mkdtemp()
-    try:
-        design_file = os.path.join(tmp, "design.v")
-        synth_file = os.path.join(tmp, "synth_netlist.v")
-        ys_script = os.path.join(tmp, "synth.ys")
-
-        Path(design_file).write_text(req.design, encoding="utf-8")
-
-        ports = extract_ports(req.design)
-        top_module = ports.get("module", "design")
-
-        # Determine if we should parse with SystemVerilog reader
-        read_cmd = f"read_verilog -sv {design_file}" if req.language == "systemverilog" else f"read_verilog {design_file}"
-
-        # Standard Yosys synthesis flow script targeting a generic gate representation
-        script_content = f"""
-{read_cmd}
-hierarchy -top {top_module}
-proc
-opt
-fsm
-opt
-memory
-opt
-techmap
-opt
-write_verilog -noattr -noexpr {synth_file}
-"""
-        Path(ys_script).write_text(script_content.strip(), encoding="utf-8")
-
-        # Run Yosys
-        res = subprocess.run(
-            [YOSYS, "-s", ys_script],
-            capture_output=True, text=True, timeout=TIMEOUT, cwd=tmp
-        )
-
-        log_output = (res.stdout + "\n" + res.stderr).strip()
-
-        if res.returncode != 0 or not os.path.exists(synth_file):
-            return {
-                "success": False,
-                "error": "Yosys synthesis execution failed. Check synthesis report for syntax/hierarchy errors.",
-                "netlist": "",
-                "log": log_output
-            }
-
-        synth_netlist = Path(synth_file).read_text(encoding="utf-8")
-
-        return {
-            "success": True,
-            "error": None,
-            "netlist": synth_netlist,
-            "log": log_output
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": "Yosys synthesis timed out.",
-            "netlist": "",
-            "log": "Process timed out."
-        }
-    except Exception as e:
-        raise HTTPException(500, str(e))
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
-
-
 # ══════════════════════════════════════════════════════════════
 #  LOCAL TEMPLATE FALLBACK
 # ══════════════════════════════════════════════════════════════
 
 def _template_tb(design: str) -> str:
+    """
+    Generates a testbench that ALWAYS drives real values into every input —
+    never leaves a TODO placeholder. Strategy:
+      - clk/clock port  -> standard clock generator
+      - rst/reset port  -> standard reset pulse
+      - remaining inputs, total width <=20 bits -> exhaustive truth table
+        (every combination across all driven inputs combined)
+      - remaining inputs, total width >20 bits  -> pseudo-random toggling
+      - sequential designs (clock present) drive remaining inputs with
+        $random on every negedge instead of with #delay, so the design
+        actually sees clock-relative stimulus
+    Bit widths are read from extract_ports() so multi-bit ports (e.g.
+    [3:0] A) get correctly sized reg declarations and the exhaustive loop
+    iterates 2**total_width times instead of treating every port as 1 bit.
+    """
     p   = extract_ports(design)
     mod = p["module"]
     ins, outs = p["inputs"], p["outputs"]
@@ -688,9 +643,13 @@ def _template_tb(design: str) -> str:
         else:
             L.append("    #160;")
     else:
+        # Combinational / structural design: no clock.
         if total_drive_width == 0:
             L.append("    #50;")
         elif total_drive_width <= 20:
+            # Exhaustive truth table across the COMBINED bit-width of all
+            # driven inputs, correctly sized regardless of individual
+            # port widths (e.g. A[3:0],B[3:0],op[2:0] -> 11 bits -> 2048).
             total = 2 ** total_drive_width
             concat = ", ".join(drive_ins)
             L.append(f"    // Exhaustive test — all {total} input combinations ({total_drive_width} total bits)")
