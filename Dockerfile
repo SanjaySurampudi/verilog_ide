@@ -1,8 +1,9 @@
 FROM python:3.10-slim
 
-# Install Icarus Verilog and compiler dependencies
+# Install Icarus Verilog, Yosys (RTL synthesis), and compiler dependencies
 RUN apt-get update && apt-get install -y \
     iverilog \
+    yosys \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

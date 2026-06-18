@@ -95,7 +95,9 @@ app.add_middleware(
 
 IVERILOG = shutil.which("iverilog") or "iverilog"
 VVP      = shutil.which("vvp")      or "vvp"
+YOSYS    = shutil.which("yosys")    or "yosys"
 TIMEOUT  = 15
+SYNTH_TIMEOUT = 30
 
 _HERE = Path(__file__).parent
 if (_HERE / "index.html").exists():
@@ -119,6 +121,16 @@ class SimReq(BaseModel):
 
 class AIReq(BaseModel):
     design: str
+    language: str = "verilog"
+
+class AIDesignReq(BaseModel):
+    name: str
+    spec: Optional[str] = None
+    language: str = "verilog"
+
+class SynthReq(BaseModel):
+    design: str
+    top: Optional[str] = None
     language: str = "verilog"
 
 class FormatReq(BaseModel):
@@ -222,6 +234,14 @@ def iverilog_version() -> str:
     except Exception as e:
         return str(e)
 
+def yosys_version() -> str:
+    try:
+        r = subprocess.run([YOSYS, "-V"], capture_output=True, text=True, timeout=4)
+        lines = (r.stdout or r.stderr or "").splitlines()
+        return lines[0] if lines else "unknown"
+    except Exception as e:
+        return str(e)
+
 def _static_analysis(code: str, label: str) -> list:
     warns = []
     is_tb = label == "testbench.v"
@@ -279,6 +299,32 @@ no "TODO" or placeholder comments — every input must actually be driven.
 
 Design code:
 {design}"""
+
+_DESIGN_PROMPT = """\
+Write a complete, synthesizable {lang} module implementing the following
+digital design. This code will be compiled with Icarus Verilog and may also
+be synthesized with Yosys, so it MUST be clean, standard, synthesizable RTL.
+
+Design name: {name}
+{spec_block}
+STRICT REQUIREMENTS:
+1. Use a clear, descriptive module name based on the design name (snake_case,
+   valid Verilog identifier)
+2. Use standard ANSI-style port declarations
+3. Prefer synthesizable constructs: no $random, no delays (#N) inside the
+   design logic itself, no testbench-only system tasks ($display/$monitor/
+   $finish are fine only if truly needed for debug, but avoid if possible)
+4. Use non-blocking assignments (<=) in clocked always blocks and blocking
+   assignments (=) in combinational always blocks
+5. Add brief comments explaining the purpose of each major block/section
+6. If the specification is ambiguous or incomplete, make sensible, common
+   engineering assumptions and note them in a short comment near the top
+7. Keep the design self-contained in a single module unless the spec clearly
+   calls for sub-modules (e.g. a datapath + controller)
+
+Output ONLY the raw Verilog/SystemVerilog code. No markdown fences, no
+explanation before or after the code.
+"""
 
 # Phrases that indicate the AI left test vectors unimplemented — if any of
 # these appear with no real stimulus around them, we discard the AI output
@@ -407,6 +453,63 @@ def _ai_generate(design: str, language: str) -> tuple[str, str]:
     # final fallback — local template, always works and always drives inputs
     return _template_tb(design), "template (offline)"
 
+
+def _template_design(name: str, spec: Optional[str]) -> str:
+    """Offline fallback when no AI provider is configured: a small, honest
+    skeleton module so the user always gets something runnable to edit."""
+    mod = re.sub(r'[^A-Za-z0-9_]', '_', name.strip() or "my_design").lower()
+    if not mod or not re.match(r'^[A-Za-z_]', mod):
+        mod = "design_" + mod
+    spec_comment = f"  // Spec: {spec.strip()}" if spec else ""
+    return f"""\
+// Auto-generated skeleton for "{name}"
+{spec_comment}
+// No AI provider configured on the backend — fill in the logic below.
+module {mod} (
+  input  wire clk,
+  input  wire rst,
+  // TODO: add your input/output ports here
+  output wire done
+);
+
+  // TODO: implement "{name}"
+
+  assign done = 1'b0;
+
+endmodule
+"""
+
+def _ai_generate_design(name: str, spec: Optional[str], language: str) -> tuple[str, str]:
+    """
+    Returns (design_code, source_label). Mirrors _ai_generate's provider
+    fan-out but for fresh design generation instead of testbenches.
+    """
+    lang_label = "SystemVerilog" if language == "systemverilog" else "Verilog HDL"
+    spec_block = f"Specification:\n{spec.strip()}\n" if spec and spec.strip() else ""
+    prompt = _DESIGN_PROMPT.format(lang=lang_label, name=name.strip(), spec_block=spec_block)
+
+    providers = [
+        ("gemini",     _call_gemini,     "gemini-2.0-flash (free)"),
+        ("groq",       _call_groq,       "groq/llama-3.1-70b (free)"),
+        ("nvidia",     _call_nvidia,     "nvidia/llama-3.1-nemotron-70b (free)"),
+        ("openrouter", _call_openrouter, "openrouter/mistral-7b (free)"),
+        ("anthropic",  _call_anthropic,  "claude-sonnet-4-6 (paid)"),
+    ]
+
+    for pname, fn, label in providers:
+        if _ai_provider != pname:
+            continue
+        try:
+            code = _clean_code(fn(prompt))
+            if "module" in code and "endmodule" in code:
+                return code, label
+            print(f"[AI] {pname} produced output with no module/endmodule — using skeleton instead")
+            return _template_design(name, spec), "template (auto-corrected)"
+        except Exception as e:
+            print(f"[AI] {pname} call failed: {e}")
+
+    return _template_design(name, spec), "template (offline)"
+
 # ══════════════════════════════════════════════════════════════
 #  ROUTES
 # ══════════════════════════════════════════════════════════════
@@ -418,6 +521,9 @@ def health():
         "status":           "ok",  
         "iverilog_path":    IVERILOG,  
         "iverilog_version": iverilog_version(),  
+        "yosys_path":       YOSYS,
+        "yosys_version":    yosys_version(),
+        "yosys_available":  shutil.which("yosys") is not None,
         "ai_provider":      _ai_provider or "none (template fallback)",  
         "ai_available":     _ai_provider is not None,  
         "timestamp":        time.time(),  
@@ -521,6 +627,136 @@ def simulate(req: SimReq):
 def gen_tb(req: AIReq):
     tb_code, source = _ai_generate(req.design, req.language)
     return {"success": True, "testbench": tb_code, "source": source}
+
+
+@app.post("/generate-design")
+def gen_design(req: AIDesignReq):
+    if not req.name or not req.name.strip():
+        raise HTTPException(400, "Design name is required")
+    code, source = _ai_generate_design(req.name, req.spec, req.language)
+    return {
+        "success": True,
+        "design": code,
+        "source": source,
+        "ports": extract_ports(code),
+    }
+
+
+# ══════════════════════════════════════════════════════════════
+#  YOSYS SYNTHESIS  (RTL → gate-level netlist)
+# ══════════════════════════════════════════════════════════════
+
+def _parse_yosys_stats(stat_text: str) -> dict:
+    """
+    Parses the output of Yosys' `stat` command into a structured summary:
+      { "cells_by_type": {"AND": 4, "OR": 2, ...}, "total_cells": 12,
+        "wires": 8, "wire_bits": 24, "memories": 0, "processes": 0 }
+    """
+    cells_by_type = {}
+    total_cells = wires = wire_bits = memories = processes = 0
+
+    for line in stat_text.splitlines():
+        s = line.strip()
+        m = re.match(r'^Number of wires:\s*(\d+)', s)
+        if m: wires = int(m.group(1)); continue
+        m = re.match(r'^Number of wire bits:\s*(\d+)', s)
+        if m: wire_bits = int(m.group(1)); continue
+        m = re.match(r'^Number of cells:\s*(\d+)', s)
+        if m: total_cells = int(m.group(1)); continue
+        m = re.match(r'^Number of memories:\s*(\d+)', s)
+        if m: memories = int(m.group(1)); continue
+        m = re.match(r'^Number of processes:\s*(\d+)', s)
+        if m: processes = int(m.group(1)); continue
+        # Per-cell-type lines look like:  "  $_AND_                        4"
+        m = re.match(r'^(\$?[A-Za-z_][\w$]*)\s+(\d+)$', s)
+        if m and not s.startswith(("Number", "===")):
+            cells_by_type[m.group(1)] = int(m.group(2))
+
+    return {
+        "total_cells":   total_cells,
+        "cells_by_type": cells_by_type,
+        "wires":         wires,
+        "wire_bits":     wire_bits,
+        "memories":      memories,
+        "processes":     processes,
+    }
+
+
+@app.post("/synthesize")
+def synthesize(req: SynthReq):
+    if not shutil.which("yosys"):
+        raise HTTPException(
+            503,
+            "Yosys is not installed on this backend. Add it to the Docker "
+            "image (apt-get install -y yosys) to enable gate-level synthesis."
+        )
+    if not req.design or len(req.design.strip()) < 5:
+        raise HTTPException(400, "Design code is required")
+
+    ports = extract_ports(req.design)
+    top = (req.top or ports.get("module") or "").strip()
+    if not top:
+        raise HTTPException(400, "Could not determine top module name")
+
+    tmp = tempfile.mkdtemp()
+    try:
+        df  = os.path.join(tmp, "design.v")
+        nf  = os.path.join(tmp, "netlist.v")
+        Path(df).write_text(req.design, encoding="utf-8")
+
+        # Generic synthesis: read -> synth (generic gate mapping via abc
+        # default cell library) -> flatten -> clean -> write_verilog, with
+        # a `stat` call so we can report cell-count statistics too.
+        ys_script = (
+            f'read_verilog -sv "{df}";\n'
+            f'hierarchy -check -top {top};\n'
+            f'proc; opt; fsm; opt; memory; opt;\n'
+            f'techmap; opt;\n'
+            f'abc;\n'
+            f'opt_clean;\n'
+            f'stat;\n'
+            f'write_verilog -noattr "{nf}"\n'
+        )
+        sf = os.path.join(tmp, "script.ys")
+        Path(sf).write_text(ys_script, encoding="utf-8")
+
+        r = subprocess.run(
+            [YOSYS, "-s", sf],
+            capture_output=True, text=True, timeout=SYNTH_TIMEOUT, cwd=tmp
+        )
+        raw = (r.stdout or "") + (r.stderr or "")
+
+        if r.returncode != 0 or not os.path.exists(nf):
+            return {
+                "success": False,
+                "netlist": "",
+                "stats": None,
+                "log": raw.strip(),
+                "errors": [{"file": "yosys", "line": 0, "severity": "error",
+                            "message": "Synthesis failed — see log for details"}],
+            }
+
+        netlist = Path(nf).read_text(encoding="utf-8", errors="replace")
+        stats = _parse_yosys_stats(raw)
+
+        return {
+            "success": True,
+            "netlist": netlist,
+            "stats":   stats,
+            "log":     raw.strip(),
+            "errors":  [],
+            "top":     top,
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False, "netlist": "", "stats": None, "log": "",
+            "errors": [{"file": "yosys", "line": 0, "severity": "error",
+                        "message": "Synthesis timed out"}],
+        }
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 @app.post("/format")
