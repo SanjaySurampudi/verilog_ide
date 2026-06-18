@@ -411,15 +411,16 @@ def _ai_generate(design: str, language: str) -> tuple[str, str]:
 #  ROUTES
 # ══════════════════════════════════════════════════════════════
 
-@app.get("/health")
-def health():
-    return {
-        "status":           "ok",
-        "iverilog_path":    IVERILOG,
-        "iverilog_version": iverilog_version(),
-        "ai_provider":      _ai_provider or "none (template fallback)",
-        "ai_available":     _ai_provider is not None,
-        "timestamp":        time.time(),
+@app.get("/health")  
+@app.head("/health")  # <--- MAKE SURE THIS EXACT LINE IS HERE
+def health():  
+    return {  
+        "status":           "ok",  
+        "iverilog_path":    IVERILOG,  
+        "iverilog_version": iverilog_version(),  
+        "ai_provider":      _ai_provider or "none (template fallback)",  
+        "ai_available":     _ai_provider is not None,  
+        "timestamp":        time.time(),  
     }
 
 
@@ -667,3 +668,4 @@ def _template_tb(design: str) -> str:
 
     L += ["    $finish;", "  end", "endmodule"]
     return "\n".join(L)
+
