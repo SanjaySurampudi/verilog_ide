@@ -1,6 +1,6 @@
 r"""
 VerilogIDE Backend — FastAPI + Icarus Verilog v12
-Place in:  A:\T HUB\jarvis_web\verilog_backend\server.py
+Place in:  verilog_backend\server.py
 Run:       uvicorn server:app --reload --port 8001   (NOT python server.py)
 
 AI PROVIDER PRIORITY (first key found wins — all are FREE):
@@ -16,6 +16,16 @@ Set ONE of these in CMD before starting:
   set GROQ_API_KEY=gsk_...
   set NVIDIA_API_KEY=nvapi-...
   set OPENROUTER_KEY=sk-or-...
+
+REQUIREMENTS (pip install):
+  fastapi uvicorn pydantic
+  google-genai        (only if using Gemini)
+  groq                 (only if using Groq)
+  anthropic            (only if using Anthropic)
+
+SYSTEM TOOLS NEEDED ON PATH:
+  iverilog, vvp   — Icarus Verilog (https://bleyer.org/icarus/ on Windows)
+  yosys           — optional, only needed for /synthesize
 """
 
 import os, subprocess, tempfile, shutil, re, time, json
@@ -88,6 +98,10 @@ if not _ai_provider:
 # ══════════════════════════════════════════════════════════════
 
 app = FastAPI(title="VerilogIDE API", version="2.1.0")
+
+# CORS: allow the local dev frontend (file:// or http://localhost:*) plus
+# the deployed Render frontend if you also use that. "*" is simplest for
+# local dev — tighten this if you ever expose the backend publicly.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
@@ -160,16 +174,6 @@ def extract_ports(code):
     Handles every port declaration style in Verilog-95 and ANSI, AND
     captures bit widths so testbench generation can declare correctly
     sized regs/wires (e.g. reg [3:0] A; instead of reg A;).
-
-      input a, b, c;            body comma list, width 1
-      input [3:0] A, B;         bus + comma list, width 4
-      output reg [3:0] result;  output reg single, width 4
-      output reg zero, carry;   output reg comma list, width 1
-      input  [3:0] A, B,        ANSI header comma-terminated
-      input clk, rst            single-line ANSI header
-
-    Returns inputs/outputs as both a list of names (back-compat) AND a
-    list of {"name":..., "width":...} dicts under "inputs_w"/"outputs_w".
     """
     SKIP = {
         "wire","reg","tri","supply0","supply1","wand","wor",
@@ -195,7 +199,6 @@ def extract_ports(code):
             if name not in seen_out:
                 seen_out.add(name); outs.append(name); outs_w.append({"name": name, "width": width})
 
-    # Unified pattern — captures optional [MSB:LSB] bus width
     port_re = re.compile(
         r'\b(input|output|inout)\b'
         r'(?:\s+(?:wire|reg|tri))?'
@@ -249,17 +252,14 @@ def _static_analysis(code: str, label: str) -> list:
     for i, line in enumerate(code.splitlines(), 1):
         s = line.strip()
         if s.startswith("//"): continue
-        # Warn about comparing two numeric constants (always true/false)
         if "==" in s and re.search(r"\b\d+\b\s*==\s*\b\d+\b", s):
             warns.append({"file": label, "line": i, "severity": "warning",
                           "message": "Comparing two constants — always true/false?"})
-        # Warn about blocking assignment inside sequential always block
         if is_tb is False and re.search(r"\bposedge\b|\bnegedge\b", s):
             if "=" in s and "<=" not in s and "==" not in s and "!=" not in s:
                 warns.append({"file": label, "line": i, "severity": "warning",
                               "message": "Blocking assignment (=) in sequential always block — use non-blocking (<=)"})
 
-    # $finish check: ONLY warn for testbenches, never for design files
     if is_tb:
         if "$finish" not in code and "$stop" not in code:
             warns.append({"file": label, "line": 0, "severity": "warning",
@@ -326,9 +326,6 @@ Output ONLY the raw Verilog/SystemVerilog code. No markdown fences, no
 explanation before or after the code.
 """
 
-# Phrases that indicate the AI left test vectors unimplemented — if any of
-# these appear with no real stimulus around them, we discard the AI output
-# and fall back to the guaranteed-exhaustive local template instead.
 _PLACEHOLDER_MARKERS = (
     "add test vector", "todo", "// fill in", "your test", "insert test",
     "drive inputs here", "test cases here", "stimulus here",
@@ -338,9 +335,6 @@ def _looks_like_placeholder_tb(code: str) -> bool:
     lower = code.lower()
     if any(marker in lower for marker in _PLACEHOLDER_MARKERS):
         return True
-    # Heuristic: testbench declares regs but never assigns most of them
-    # outside of the module port list (i.e. no "name = " or "name <= " or
-    # "name=" appears anywhere in the body).
     reg_names = re.findall(r"\breg\s+(\w+)\s*;", code)
     if reg_names:
         undriven = [n for n in reg_names if not re.search(rf"\b{re.escape(n)}\s*(<=|=)\s*[^=]", code)]
@@ -368,7 +362,7 @@ def _call_nvidia(prompt: str) -> str:
     """NVIDIA NIM — OpenAI-compatible API. Get a free key at build.nvidia.com"""
     import urllib.request
     payload = json.dumps({
-        "model": "meta/llama-3.3-70b-instruct",
+        "model": "nvidia/llama-3.1-nemotron-70b-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 1400,
         "temperature": 0.2,
@@ -415,18 +409,11 @@ def _call_anthropic(prompt: str) -> str:
     return msg.content[0].text
 
 def _clean_code(raw: str) -> str:
-    """Strip any markdown fences the model might add."""
     raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.M)
     raw = raw.replace("```", "").strip()
     return raw
 
 def _ai_generate(design: str, language: str) -> tuple[str, str]:
-    """
-    Returns (testbench_code, source_label).
-    Tries each available provider; if the result still looks like a
-    placeholder (undriven inputs / TODO comments), discards it and falls
-    back to the guaranteed-exhaustive local template instead.
-    """
     lang_label = "SystemVerilog" if language == "systemverilog" else "Verilog HDL"
     prompt = _TB_PROMPT.format(lang=lang_label, design=design)
 
@@ -450,13 +437,10 @@ def _ai_generate(design: str, language: str) -> tuple[str, str]:
         except Exception as e:
             print(f"[AI] {name} call failed: {e}")
 
-    # final fallback — local template, always works and always drives inputs
     return _template_tb(design), "template (offline)"
 
 
 def _template_design(name: str, spec: Optional[str]) -> str:
-    """Offline fallback when no AI provider is configured: a small, honest
-    skeleton module so the user always gets something runnable to edit."""
     mod = re.sub(r'[^A-Za-z0-9_]', '_', name.strip() or "my_design").lower()
     if not mod or not re.match(r'^[A-Za-z_]', mod):
         mod = "design_" + mod
@@ -480,10 +464,6 @@ endmodule
 """
 
 def _ai_generate_design(name: str, spec: Optional[str], language: str) -> tuple[str, str]:
-    """
-    Returns (design_code, source_label). Mirrors _ai_generate's provider
-    fan-out but for fresh design generation instead of testbenches.
-    """
     lang_label = "SystemVerilog" if language == "systemverilog" else "Verilog HDL"
     spec_block = f"Specification:\n{spec.strip()}\n" if spec and spec.strip() else ""
     prompt = _DESIGN_PROMPT.format(lang=lang_label, name=name.strip(), spec_block=spec_block)
@@ -514,19 +494,19 @@ def _ai_generate_design(name: str, spec: Optional[str], language: str) -> tuple[
 #  ROUTES
 # ══════════════════════════════════════════════════════════════
 
-@app.get("/health")  
-@app.head("/health")  # <--- MAKE SURE THIS EXACT LINE IS HERE
-def health():  
-    return {  
-        "status":           "ok",  
-        "iverilog_path":    IVERILOG,  
-        "iverilog_version": iverilog_version(),  
+@app.get("/health")
+@app.head("/health")
+def health():
+    return {
+        "status":           "ok",
+        "iverilog_path":    IVERILOG,
+        "iverilog_version": iverilog_version(),
         "yosys_path":       YOSYS,
         "yosys_version":    yosys_version(),
         "yosys_available":  shutil.which("yosys") is not None,
-        "ai_provider":      _ai_provider or "none (template fallback)",  
-        "ai_available":     _ai_provider is not None,  
-        "timestamp":        time.time(),  
+        "ai_provider":      _ai_provider or "none (template fallback)",
+        "ai_available":     _ai_provider is not None,
+        "timestamp":        time.time(),
     }
 
 
@@ -647,11 +627,6 @@ def gen_design(req: AIDesignReq):
 # ══════════════════════════════════════════════════════════════
 
 def _parse_yosys_stats(stat_text: str) -> dict:
-    """
-    Parses the output of Yosys' `stat` command into a structured summary:
-      { "cells_by_type": {"AND": 4, "OR": 2, ...}, "total_cells": 12,
-        "wires": 8, "wire_bits": 24, "memories": 0, "processes": 0 }
-    """
     cells_by_type = {}
     total_cells = wires = wire_bits = memories = processes = 0
 
@@ -667,7 +642,6 @@ def _parse_yosys_stats(stat_text: str) -> dict:
         if m: memories = int(m.group(1)); continue
         m = re.match(r'^Number of processes:\s*(\d+)', s)
         if m: processes = int(m.group(1)); continue
-        # Per-cell-type lines look like:  "  $_AND_                        4"
         m = re.match(r'^(\$?[A-Za-z_][\w$]*)\s+(\d+)$', s)
         if m and not s.startswith(("Number", "===")):
             cells_by_type[m.group(1)] = int(m.group(2))
@@ -687,8 +661,9 @@ def synthesize(req: SynthReq):
     if not shutil.which("yosys"):
         raise HTTPException(
             503,
-            "Yosys is not installed on this backend. Add it to the Docker "
-            "image (apt-get install -y yosys) to enable gate-level synthesis."
+            "Yosys is not installed on this backend. Install it (e.g. "
+            "apt-get install -y yosys on Linux, or via the Yosys Windows "
+            "installer) to enable gate-level synthesis."
         )
     if not req.design or len(req.design.strip()) < 5:
         raise HTTPException(400, "Design code is required")
@@ -704,9 +679,6 @@ def synthesize(req: SynthReq):
         nf  = os.path.join(tmp, "netlist.v")
         Path(df).write_text(req.design, encoding="utf-8")
 
-        # Generic synthesis: read -> synth (generic gate mapping via abc
-        # default cell library) -> flatten -> clean -> write_verilog, with
-        # a `stat` call so we can report cell-count statistics too.
         ys_script = (
             f'read_verilog -sv "{df}";\n'
             f'hierarchy -check -top {top};\n'
@@ -807,21 +779,6 @@ def analyze(req: CompileReq):
 # ══════════════════════════════════════════════════════════════
 
 def _template_tb(design: str) -> str:
-    """
-    Generates a testbench that ALWAYS drives real values into every input —
-    never leaves a TODO placeholder. Strategy:
-      - clk/clock port  -> standard clock generator
-      - rst/reset port  -> standard reset pulse
-      - remaining inputs, total width <=20 bits -> exhaustive truth table
-        (every combination across all driven inputs combined)
-      - remaining inputs, total width >20 bits  -> pseudo-random toggling
-      - sequential designs (clock present) drive remaining inputs with
-        $random on every negedge instead of with #delay, so the design
-        actually sees clock-relative stimulus
-    Bit widths are read from extract_ports() so multi-bit ports (e.g.
-    [3:0] A) get correctly sized reg declarations and the exhaustive loop
-    iterates 2**total_width times instead of treating every port as 1 bit.
-    """
     p   = extract_ports(design)
     mod = p["module"]
     ins, outs = p["inputs"], p["outputs"]
@@ -880,13 +837,9 @@ def _template_tb(design: str) -> str:
         else:
             L.append("    #160;")
     else:
-        # Combinational / structural design: no clock.
         if total_drive_width == 0:
             L.append("    #50;")
         elif total_drive_width <= 20:
-            # Exhaustive truth table across the COMBINED bit-width of all
-            # driven inputs, correctly sized regardless of individual
-            # port widths (e.g. A[3:0],B[3:0],op[2:0] -> 11 bits -> 2048).
             total = 2 ** total_drive_width
             concat = ", ".join(drive_ins)
             L.append(f"    // Exhaustive test — all {total} input combinations ({total_drive_width} total bits)")
@@ -904,4 +857,3 @@ def _template_tb(design: str) -> str:
 
     L += ["    $finish;", "  end", "endmodule"]
     return "\n".join(L)
-
