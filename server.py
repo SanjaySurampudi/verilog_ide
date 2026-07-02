@@ -362,7 +362,7 @@ def _call_nvidia(prompt: str) -> str:
     """NVIDIA NIM — OpenAI-compatible API. Get a free key at build.nvidia.com"""
     import urllib.request
     payload = json.dumps({
-        "model": "meta/llama-3.2-3b-instruct",
+        "model": "meta/llama-3.3-70b-instruct",
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 1400,
         "temperature": 0.2,
