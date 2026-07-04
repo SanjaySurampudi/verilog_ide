@@ -5,7 +5,7 @@ Run:       uvicorn server:app --reload --port 8001   (NOT python server.py)
 
 AI PROVIDER PRIORITY (first key found wins — all are FREE):
   1. GEMINI_API_KEY   → Google Gemini 2.0 Flash       (aistudio.google.com)
-  2. GROQ_API_KEY     → Groq Llama 3.1 70B            (console.groq.com)
+  2. GROQ_API_KEY     → Groq gpt-oss-120b              (console.groq.com)
   3. NVIDIA_API_KEY   → NVIDIA NIM Nemotron-70B       (build.nvidia.com)
   4. OPENROUTER_KEY   → OpenRouter free models         (openrouter.ai)
   5. ANTHROPIC_API_KEY→ Anthropic Claude (paid)        (console.anthropic.com)
@@ -363,7 +363,7 @@ def _call_groq(prompt: str, key: Optional[str] = None) -> str:
     from groq import Groq
     client = Groq(api_key=key) if key else _ai_client
     completion = client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=1400,
         temperature=0.2,
@@ -428,7 +428,7 @@ def _call_anthropic(prompt: str, key: Optional[str] = None) -> str:
 # `provider` string the frontend sends.
 _USER_KEY_CALLERS = {
     "gemini":     (_call_gemini,     "gemini-2.0-flash (your key)"),
-    "groq":       (_call_groq,       "groq/llama-3.1-70b (your key)"),
+    "groq":       (_call_groq,       "groq/gpt-oss-120b (your key)"),
     "nvidia":     (_call_nvidia,     "nvidia/llama-3.3-70b (your key)"),
     "openrouter": (_call_openrouter, "openrouter/mistral-7b (your key)"),
     "anthropic":  (_call_anthropic,  "claude-sonnet-4-6 (your key)"),
@@ -460,7 +460,7 @@ def _ai_generate(design: str, language: str, api_key: Optional[str] = None,
     # 2. Server-configured provider chain (env vars).
     providers = [
         ("gemini",     _call_gemini,     "gemini-2.0-flash (free)"),
-        ("groq",       _call_groq,       "groq/llama-3.1-70b (free)"),
+        ("groq",       _call_groq,       "groq/gpt-oss-120b (free)"),
         ("nvidia",     _call_nvidia,     "nvidia/llama-3.1-nemotron-70b (free)"),
         ("openrouter", _call_openrouter, "openrouter/mistral-7b (free)"),
         ("anthropic",  _call_anthropic,  "claude-sonnet-4-6 (paid)"),
@@ -527,7 +527,7 @@ def _ai_generate_design(name: str, spec: Optional[str], language: str,
     # 2. Server-configured provider chain (env vars).
     providers = [
         ("gemini",     _call_gemini,     "gemini-2.0-flash (free)"),
-        ("groq",       _call_groq,       "groq/llama-3.1-70b (free)"),
+        ("groq",       _call_groq,       "groq/gpt-oss-120b (free)"),
         ("nvidia",     _call_nvidia,     "nvidia/llama-3.1-nemotron-70b (free)"),
         ("openrouter", _call_openrouter, "openrouter/mistral-7b (free)"),
         ("anthropic",  _call_anthropic,  "claude-sonnet-4-6 (paid)"),
