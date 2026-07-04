@@ -252,8 +252,76 @@ select option{background:var(--bg1)}
   white-space:nowrap;z-index:50;pointer-events:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+
+<!-- ═══════════════════════════════════ FIREBASE AUTH ═══════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+/* ── Auth overlay ── */
+#auth-overlay{
+  position:fixed;inset:0;z-index:9999;background:var(--bg0);
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
+}
+#auth-overlay.hidden{display:none}
+.auth-box{
+  width:320px;background:var(--bg1);border:1px solid var(--bg3);border-radius:6px;
+  padding:28px 26px;display:flex;flex-direction:column;gap:12px;
+}
+.auth-box h1{font-size:16px;color:var(--blue);letter-spacing:1px;text-align:center;margin-bottom:4px}
+.auth-box h1 span{color:var(--fg2);font-weight:400}
+.auth-tabs{display:flex;gap:4px;margin-bottom:4px}
+.auth-tab{flex:1;text-align:center;padding:6px 0;background:var(--bg2);border:1px solid var(--bg3);
+  border-radius:4px;cursor:pointer;color:var(--fg2);font-size:12px}
+.auth-tab.active{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+.auth-box input{
+  background:var(--bg2);border:1px solid var(--bg3);color:var(--fg0);padding:8px 10px;
+  border-radius:4px;font-family:var(--font-mono);font-size:13px;outline:none;
+}
+.auth-box input:focus{border-color:var(--blue)}
+.auth-box button{
+  padding:9px 0;border-radius:4px;border:1px solid var(--bg3);cursor:pointer;
+  font-family:var(--font-mono);font-size:13px;font-weight:600;
+}
+.auth-submit{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+.auth-submit:hover{filter:brightness(1.15)}
+.auth-google{background:var(--bg2);color:var(--fg0);display:flex;align-items:center;justify-content:center;gap:8px}
+.auth-google:hover{background:var(--bg3)}
+.auth-divider{display:flex;align-items:center;gap:8px;color:var(--fg3);font-size:11px;margin:2px 0}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--bg3)}
+#auth-error{color:var(--red);font-size:11px;min-height:14px}
+#auth-toggle-mode{color:var(--fg2);font-size:11px;text-align:center;cursor:pointer}
+#auth-toggle-mode span{color:var(--blue)}
+.user-badge{display:flex;align-items:center;gap:6px;color:var(--fg2);font-size:12px}
+.user-badge img{width:20px;height:20px;border-radius:50%}
+#logout-btn{background:var(--bg2);color:var(--fg2);border:1px solid var(--bg3);border-radius:4px;
+  padding:4px 8px;font-size:11px;cursor:pointer;font-family:var(--font-mono)}
+#logout-btn:hover{background:var(--bg3);color:var(--fg0)}
+</style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════ AUTH OVERLAY ═══════════════════════════════════ -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <h1>⬡ Verilog<span>IDE</span></h1>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-signin" onclick="setAuthMode('signin')">Sign In</div>
+      <div class="auth-tab" id="tab-signup" onclick="setAuthMode('signup')">Sign Up</div>
+    </div>
+    <button class="auth-google" onclick="signInWithGoogle()">
+      <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4c-7.6 0-14.1 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.4l-6.5-5.4C29.4 34.9 26.8 36 24 36c-5.3 0-9.8-3.4-11.4-8.1l-6.5 5C9.8 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.7 2-1.9 3.7-3.5 5l6.5 5.4C41.6 35.6 44 30.2 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-divider">or</div>
+    <input type="email" id="auth-email" placeholder="Email" autocomplete="email">
+    <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
+    <div id="auth-error"></div>
+    <button class="auth-submit" id="auth-submit-btn" onclick="submitEmailAuth()">Sign In</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ APP CONTENT (hidden until logged in) ═══════════════════════════════════ -->
+<div id="app-content" style="display:none">
 
 <!-- ═══════════════════════════════════ TOP BAR ═══════════════════════════════════ -->
 <div class="topbar">
@@ -274,6 +342,8 @@ select option{background:var(--bg1)}
 
   <span id="be-pill" class="dead">● backend offline</span>
   <div class="status"><span class="sdot" id="sdot"></span><span id="stext">Ready</span></div>
+  <div class="user-badge" id="user-badge"></div>
+  <button id="logout-btn" onclick="logOut()">Log out</button>
 </div>
 
 <!-- ═══════════════════════════════════ MAIN ═══════════════════════════════════ -->
@@ -3459,6 +3529,96 @@ document.getElementById('ai-design-name').addEventListener('keydown',function(e)
   if(e.key==='Enter'){ e.preventDefault(); doGenerateDesign(); }
 });
 
+</script>
+
+</div><!-- /#app-content -->
+
+<!-- ═══════════════════════════════════ FIREBASE AUTH LOGIC ═══════════════════════════════════ -->
+<script>
+// ── 1. PASTE YOUR FIREBASE CONFIG HERE ──
+// Firebase Console → Project settings (⚙) → General → "Your apps" → Web app → SDK setup and configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDq9awL0vRnlGBYPRAsMwNkTODMXusmlBs",
+  authDomain: "verilogide.firebaseapp.com",
+  projectId: "verilogide",
+  storageBucket: "verilogide.firebasestorage.app",
+  messagingSenderId: "802325829685",
+  appId: "1:802325829685:web:c360a89694a82fe651f97c",
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+let authMode = 'signin'; // 'signin' | 'signup'
+
+function setAuthMode(mode){
+  authMode = mode;
+  document.getElementById('tab-signin').classList.toggle('active', mode==='signin');
+  document.getElementById('tab-signup').classList.toggle('active', mode==='signup');
+  document.getElementById('auth-submit-btn').textContent = mode==='signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function showAuthError(err){
+  const map = {
+    'auth/invalid-email':        'Enter a valid email address.',
+    'auth/user-not-found':       'No account with that email — try Sign Up.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-credential':   'Incorrect email or password.',
+    'auth/email-already-in-use': 'An account already exists — try Sign In.',
+    'auth/weak-password':        'Password must be at least 6 characters.',
+    'auth/popup-closed-by-user': '',
+  };
+  document.getElementById('auth-error').textContent = map[err.code] ?? err.message;
+}
+
+function submitEmailAuth(){
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  document.getElementById('auth-error').textContent = '';
+  if(!email || !password){
+    document.getElementById('auth-error').textContent = 'Enter both email and password.';
+    return;
+  }
+  const action = authMode === 'signin'
+    ? auth.signInWithEmailAndPassword(email, password)
+    : auth.createUserWithEmailAndPassword(email, password);
+  action.catch(showAuthError);
+}
+
+function signInWithGoogle(){
+  auth.signInWithPopup(googleProvider).catch(showAuthError);
+}
+
+function logOut(){
+  auth.signOut();
+}
+
+// Allow pressing Enter in the password field to submit
+document.getElementById('auth-password').addEventListener('keydown', e=>{
+  if(e.key==='Enter') submitEmailAuth();
+});
+
+// ── Auth state gate: show app only when logged in ──
+auth.onAuthStateChanged(user=>{
+  const overlay = document.getElementById('auth-overlay');
+  const app     = document.getElementById('app-content');
+  const badge   = document.getElementById('user-badge');
+
+  if(user){
+    overlay.classList.add('hidden');
+    app.style.display = '';
+    const photo = user.photoURL
+      ? `<img src="${user.photoURL}" referrerpolicy="no-referrer">`
+      : '';
+    badge.innerHTML = `${photo}<span>${user.email || user.displayName || 'Signed in'}</span>`;
+  } else {
+    overlay.classList.remove('hidden');
+    app.style.display = 'none';
+    badge.innerHTML = '';
+  }
+});
 </script>
 </body>
 </html>
