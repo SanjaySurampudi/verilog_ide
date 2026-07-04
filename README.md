@@ -85,16 +85,12 @@ Open `index.html` in your browser, or serve it with a static file server. Update
 
 ```
 verilog_ide/
-├── backend/
-│   ├── main.py            # FastAPI app entrypoint
-│   ├── routes/            # API route handlers (simulate, synthesize, AI generate)
-│   ├── requirements.txt
-│   └── .env
-├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   └── script.js
-└── README.md
+│── server.py            # FastAPI app entrypoint
+├── requirements.txt
+├── docker
+├── README.md
+└── frontend/
+    ├── index.html
 ```
 
 *(Update this to match your actual folder layout.)*
