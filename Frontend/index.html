@@ -263,6 +263,7 @@ select option{background:var(--bg1)}
   <button class="btn btn-blue"  onclick="runSimulate()" data-tip="Compile + run vvp simulation">⚡ Simulate</button>
   <button class="btn btn-purple" onclick="generateTB()" data-tip="AI-generate testbench via Claude">✦ AI Testbench</button>
   <button class="btn btn-purple" onclick="showAIDesignModal()" data-tip="AI-generate a new design from a prompt">⚙ AI Design</button>
+  <button class="btn btn-default" id="ai-key-btn" onclick="showAIKeyModal()" data-tip="Use your own AI API key for AI Testbench / AI Design">🔑 AI Key</button>
   <button class="btn btn-yellow" onclick="formatCode()" data-tip="Auto-format code indentation">⇌ Format</button>
   <button class="btn btn-default" onclick="runSynthesize()" data-tip="Synthesize design.v to a gate-level netlist via Yosys">🔩 Synthesize</button>
   <button class="btn btn-default" onclick="showSaveModal()" data-tip="Save to local file">💾 Save</button>
@@ -463,6 +464,36 @@ select option{background:var(--bg1)}
     <div class="modal-btns">
       <button class="btn btn-default" onclick="closeAIDesignModal()">Cancel</button>
       <button class="btn btn-purple" onclick="doGenerateDesign()" id="ai-design-go-btn">✦ Generate</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI KEY SETTINGS MODAL -->
+<div id="ai-key-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <h3>🔑 Your AI API Key</h3>
+    <div class="c-muted" style="margin-bottom:10px;font-size:12px;line-height:1.5">
+      Optional — use your own key with AI Testbench / AI Design instead of the
+      shared server key. Your key is sent from your browser straight to this
+      backend for a single request and is <strong>not saved on the server</strong>;
+      it's stored only in this browser (localStorage) so you don't have to
+      retype it every time.
+    </div>
+    <label for="ai-key-provider">provider</label>
+    <select id="ai-key-provider">
+      <option value="gemini">Google Gemini (aistudio.google.com — free)</option>
+      <option value="groq">Groq (console.groq.com — free)</option>
+      <option value="nvidia">NVIDIA NIM (build.nvidia.com — free)</option>
+      <option value="openrouter">OpenRouter (openrouter.ai — free models)</option>
+      <option value="anthropic">Anthropic Claude (console.anthropic.com — paid)</option>
+    </select>
+    <label for="ai-key-value">api key</label>
+    <input type="password" id="ai-key-value" placeholder="Paste your API key" autocomplete="off">
+    <div class="c-muted" id="ai-key-status" style="margin-top:6px;font-size:12px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-default" onclick="clearAIKey()">Clear key</button>
+      <button class="btn btn-default" onclick="closeAIKeyModal()">Cancel</button>
+      <button class="btn btn-purple" onclick="saveAIKey()">Save</button>
     </div>
   </div>
 </div>
@@ -1423,6 +1454,68 @@ async function runSynthesize(){
 }
 
 // ════════════════════════════════════════════════════════════════
+//  AI KEY SETTINGS  (user's own API key, stored client-side only)
+// ════════════════════════════════════════════════════════════════
+const AI_KEY_LS_PROVIDER = 'verilogide_ai_provider';
+const AI_KEY_LS_VALUE    = 'verilogide_ai_key';
+
+function getAIKeySettings(){
+  const provider = localStorage.getItem(AI_KEY_LS_PROVIDER) || '';
+  const apiKey   = localStorage.getItem(AI_KEY_LS_VALUE) || '';
+  return (provider && apiKey) ? {provider, apiKey} : null;
+}
+
+function updateAIKeyBtnLabel(){
+  const btn = document.getElementById('ai-key-btn');
+  const s = getAIKeySettings();
+  if(!btn) return;
+  btn.textContent = s ? `🔑 ${s.provider}` : '🔑 AI Key';
+  btn.classList.toggle('btn-purple', !!s);
+  btn.classList.toggle('btn-default', !s);
+}
+
+function showAIKeyModal(){
+  const s = getAIKeySettings();
+  document.getElementById('ai-key-provider').value = s ? s.provider : 'gemini';
+  document.getElementById('ai-key-value').value = s ? s.apiKey : '';
+  document.getElementById('ai-key-status').textContent = s
+    ? `Currently using your ${s.provider} key.`
+    : 'No personal key set — using the shared server key (if configured).';
+  document.getElementById('ai-key-modal').style.display = 'flex';
+}
+
+function closeAIKeyModal(){
+  document.getElementById('ai-key-modal').style.display = 'none';
+}
+
+function saveAIKey(){
+  const provider = document.getElementById('ai-key-provider').value;
+  const apiKey   = document.getElementById('ai-key-value').value.trim();
+  if(!apiKey){
+    log('[!] Enter an API key first, or use "Clear key" to remove it','warn');
+    return;
+  }
+  localStorage.setItem(AI_KEY_LS_PROVIDER, provider);
+  localStorage.setItem(AI_KEY_LS_VALUE, apiKey);
+  updateAIKeyBtnLabel();
+  closeAIKeyModal();
+  log(`> Using your own ${provider} key for AI Testbench / AI Design`,'ok');
+}
+
+function clearAIKey(){
+  localStorage.removeItem(AI_KEY_LS_PROVIDER);
+  localStorage.removeItem(AI_KEY_LS_VALUE);
+  document.getElementById('ai-key-value').value = '';
+  updateAIKeyBtnLabel();
+  document.getElementById('ai-key-status').textContent =
+    'No personal key set — using the shared server key (if configured).';
+  log('> Cleared your personal AI key — back to server default','info');
+}
+
+// Reflect saved key state on the toolbar button as soon as the page loads
+document.addEventListener('DOMContentLoaded', updateAIKeyBtnLabel);
+
+// ════════════════════════════════════════════════════════════════
 //  AI TESTBENCH
 // ════════════════════════════════════════════════════════════════
 async function generateTB(){
@@ -1432,9 +1525,14 @@ async function generateTB(){
 
   if(backendLive){
     try{
+      const keySettings = getAIKeySettings();
       const r=await fetch(API+'/generate-testbench',{method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({design:files.design,language:lang})});
+        body:JSON.stringify({
+          design:files.design, language:lang,
+          api_key: keySettings ? keySettings.apiKey : null,
+          provider: keySettings ? keySettings.provider : null
+        })});
       const d=await r.json();
       if(d.success){
         setCode('tb', d.testbench);
@@ -1609,9 +1707,14 @@ async function doGenerateDesign(){
   }
 
   try{
+    const keySettings = getAIKeySettings();
     const r = await fetch(API+'/generate-design',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name, spec: spec || null, language: lang})});
+      body:JSON.stringify({
+        name, spec: spec || null, language: lang,
+        api_key: keySettings ? keySettings.apiKey : null,
+        provider: keySettings ? keySettings.provider : null
+      })});
     if(!r.ok){
       const err = await r.json().catch(()=>({detail:r.statusText}));
       throw new Error(err.detail || r.statusText);

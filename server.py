@@ -136,11 +136,15 @@ class SimReq(BaseModel):
 class AIReq(BaseModel):
     design: str
     language: str = "verilog"
+    api_key: Optional[str] = None   # user-supplied key, used instead of server env key
+    provider: Optional[str] = None  # "gemini" | "groq" | "nvidia" | "openrouter" | "anthropic"
 
 class AIDesignReq(BaseModel):
     name: str
     spec: Optional[str] = None
     language: str = "verilog"
+    api_key: Optional[str] = None
+    provider: Optional[str] = None
 
 class SynthReq(BaseModel):
     design: str
@@ -342,15 +346,19 @@ def _looks_like_placeholder_tb(code: str) -> bool:
             return True
     return False
 
-def _call_gemini(prompt: str) -> str:
-    response = _ai_client.models.generate_content(
+def _call_gemini(prompt: str, key: Optional[str] = None) -> str:
+    from google import genai as _genai
+    client = _genai.Client(api_key=key) if key else _ai_client
+    response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt,
     )
     return response.text
 
-def _call_groq(prompt: str) -> str:
-    completion = _ai_client.chat.completions.create(
+def _call_groq(prompt: str, key: Optional[str] = None) -> str:
+    from groq import Groq
+    client = Groq(api_key=key) if key else _ai_client
+    completion = client.chat.completions.create(
         model="llama-3.1-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=1400,
@@ -358,9 +366,10 @@ def _call_groq(prompt: str) -> str:
     )
     return completion.choices[0].message.content
 
-def _call_nvidia(prompt: str) -> str:
+def _call_nvidia(prompt: str, key: Optional[str] = None) -> str:
     """NVIDIA NIM — OpenAI-compatible API. Get a free key at build.nvidia.com"""
     import urllib.request
+    use_key = key or _ai_client
     payload = json.dumps({
         "model": "meta/llama-3.3-70b-instruct",
         "messages": [{"role": "user", "content": prompt}],
@@ -371,7 +380,7 @@ def _call_nvidia(prompt: str) -> str:
         "https://integrate.api.nvidia.com/v1/chat/completions",
         data=payload,
         headers={
-            "Authorization": f"Bearer {_ai_client}",
+            "Authorization": f"Bearer {use_key}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
@@ -380,8 +389,9 @@ def _call_nvidia(prompt: str) -> str:
         data = json.loads(r.read())
     return data["choices"][0]["message"]["content"]
 
-def _call_openrouter(prompt: str) -> str:
+def _call_openrouter(prompt: str, key: Optional[str] = None) -> str:
     import urllib.request
+    use_key = key or _ai_client
     payload = json.dumps({
         "model": "mistralai/mistral-7b-instruct:free",
         "messages": [{"role": "user", "content": prompt}],
@@ -391,7 +401,7 @@ def _call_openrouter(prompt: str) -> str:
         "https://openrouter.ai/api/v1/chat/completions",
         data=payload,
         headers={
-            "Authorization": f"Bearer {_ai_client}",
+            "Authorization": f"Bearer {use_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "http://localhost:8001",
         }
@@ -400,23 +410,50 @@ def _call_openrouter(prompt: str) -> str:
         data = json.loads(r.read())
     return data["choices"][0]["message"]["content"]
 
-def _call_anthropic(prompt: str) -> str:
-    msg = _ai_client.messages.create(
+def _call_anthropic(prompt: str, key: Optional[str] = None) -> str:
+    import anthropic
+    client = anthropic.Anthropic(api_key=key) if key else _ai_client
+    msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1400,
         messages=[{"role": "user", "content": prompt}]
     )
     return msg.content[0].text
 
+# Providers a user is allowed to supply their own key for, keyed by the
+# `provider` string the frontend sends.
+_USER_KEY_CALLERS = {
+    "gemini":     (_call_gemini,     "gemini-2.0-flash (your key)"),
+    "groq":       (_call_groq,       "groq/llama-3.1-70b (your key)"),
+    "nvidia":     (_call_nvidia,     "nvidia/llama-3.3-70b (your key)"),
+    "openrouter": (_call_openrouter, "openrouter/mistral-7b (your key)"),
+    "anthropic":  (_call_anthropic,  "claude-sonnet-4-6 (your key)"),
+}
+
 def _clean_code(raw: str) -> str:
     raw = re.sub(r"^```[a-z]*\n?", "", raw, flags=re.M)
     raw = raw.replace("```", "").strip()
     return raw
 
-def _ai_generate(design: str, language: str) -> tuple[str, str]:
+def _ai_generate(design: str, language: str, api_key: Optional[str] = None,
+                  provider: Optional[str] = None) -> tuple[str, str]:
     lang_label = "SystemVerilog" if language == "systemverilog" else "Verilog HDL"
     prompt = _TB_PROMPT.format(lang=lang_label, design=design)
 
+    # 1. User-supplied key takes priority, if it's a provider we support.
+    if api_key and provider and provider in _USER_KEY_CALLERS:
+        fn, label = _USER_KEY_CALLERS[provider]
+        try:
+            code = _clean_code(fn(prompt, api_key))
+            if _looks_like_placeholder_tb(code):
+                print(f"[AI] user key ({provider}) produced a placeholder testbench — using template instead")
+                return _template_tb(design), "template (auto-corrected)"
+            return code, label
+        except Exception as e:
+            print(f"[AI] user key ({provider}) call failed: {e}")
+            # fall through to server-configured providers below
+
+    # 2. Server-configured provider chain (env vars).
     providers = [
         ("gemini",     _call_gemini,     "gemini-2.0-flash (free)"),
         ("groq",       _call_groq,       "groq/llama-3.1-70b (free)"),
@@ -463,11 +500,27 @@ module {mod} (
 endmodule
 """
 
-def _ai_generate_design(name: str, spec: Optional[str], language: str) -> tuple[str, str]:
+def _ai_generate_design(name: str, spec: Optional[str], language: str,
+                         api_key: Optional[str] = None,
+                         provider: Optional[str] = None) -> tuple[str, str]:
     lang_label = "SystemVerilog" if language == "systemverilog" else "Verilog HDL"
     spec_block = f"Specification:\n{spec.strip()}\n" if spec and spec.strip() else ""
     prompt = _DESIGN_PROMPT.format(lang=lang_label, name=name.strip(), spec_block=spec_block)
 
+    # 1. User-supplied key takes priority, if it's a provider we support.
+    if api_key and provider and provider in _USER_KEY_CALLERS:
+        fn, label = _USER_KEY_CALLERS[provider]
+        try:
+            code = _clean_code(fn(prompt, api_key))
+            if "module" in code and "endmodule" in code:
+                return code, label
+            print(f"[AI] user key ({provider}) produced output with no module/endmodule — using skeleton instead")
+            return _template_design(name, spec), "template (auto-corrected)"
+        except Exception as e:
+            print(f"[AI] user key ({provider}) call failed: {e}")
+            # fall through to server-configured providers below
+
+    # 2. Server-configured provider chain (env vars).
     providers = [
         ("gemini",     _call_gemini,     "gemini-2.0-flash (free)"),
         ("groq",       _call_groq,       "groq/llama-3.1-70b (free)"),
@@ -605,7 +658,7 @@ def simulate(req: SimReq):
 
 @app.post("/generate-testbench")
 def gen_tb(req: AIReq):
-    tb_code, source = _ai_generate(req.design, req.language)
+    tb_code, source = _ai_generate(req.design, req.language, req.api_key, req.provider)
     return {"success": True, "testbench": tb_code, "source": source}
 
 
@@ -613,7 +666,7 @@ def gen_tb(req: AIReq):
 def gen_design(req: AIDesignReq):
     if not req.name or not req.name.strip():
         raise HTTPException(400, "Design name is required")
-    code, source = _ai_generate_design(req.name, req.spec, req.language)
+    code, source = _ai_generate_design(req.name, req.spec, req.language, req.api_key, req.provider)
     return {
         "success": True,
         "design": code,
