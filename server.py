@@ -133,6 +133,10 @@ class SimReq(BaseModel):
     testbench: str
     language: str = "verilog"
 
+class ValidateKeyReq(BaseModel):
+    provider: str
+    api_key: str
+
 class AIReq(BaseModel):
     design: str
     language: str = "verilog"
@@ -654,6 +658,24 @@ def simulate(req: SimReq):
         raise HTTPException(500, str(e))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+@app.post("/validate-key")
+def validate_key(req: ValidateKeyReq):
+    provider = (req.provider or "").strip().lower()
+    api_key  = (req.api_key or "").strip()
+
+    if provider not in _USER_KEY_CALLERS:
+        raise HTTPException(400, f"Unsupported provider: '{provider}'")
+    if not api_key:
+        raise HTTPException(400, "API key is required")
+
+    fn, label = _USER_KEY_CALLERS[provider]
+    try:
+        reply = fn("Reply with only the single word: OK", api_key)
+        return {"valid": True, "message": f"Key works — {label}", "raw": (reply or "").strip()[:200]}
+    except Exception as e:
+        return {"valid": False, "message": str(e)}
 
 
 @app.post("/generate-testbench")
