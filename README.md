@@ -2,7 +2,7 @@
 
 A browser-based IDE for writing, simulating, and synthesizing Verilog RTL — with AI-assisted design generation built in. No local toolchain installation required; everything runs through a cloud backend.
 
-**Live demo:** [_add your Render URL here_](https://verilogide.web.app/)
+**Live demo:** [_Live Link_](https://verilogide.web.app/)
 
 ---
 
