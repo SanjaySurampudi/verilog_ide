@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oops! - Page Not Found</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Premium Fonts -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Inter:wght@300;400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e5e5e5; /* Sophisticated light grey background framing the card */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .serif-font {
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        /* Ambient floating float animation */
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(-1deg); }
+        }
+
+        .floating-ghost-container {
+            animation: gentleFloat 6s ease-in-out infinite;
+        }
+
+        /* Subtle button transition shadow */
+        .btn-shadow {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-shadow:hover {
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        .btn-shadow:active {
+            transform: translateY(0px);
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-12">
+
+    <!-- Main Container styled exactly like the high-end UI layout card -->
+    <div class="w-full max-w-[1200px] aspect-[4/3] sm:aspect-video bg-[#000000] rounded-[40px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col justify-between p-8 sm:p-16 md:p-20 relative select-none">
+        
+        <!-- Subtle Interactive Noise Overlay for texture -->
+        <div class="absolute inset-0 opacity-[0.015] pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] z-20"></div>
+
+        <!-- Giant background 404 watermark -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
+            <span class="font-mono font-bold text-white/[0.025] text-[28vw] md:text-[22vw] leading-none tracking-tighter select-none">404</span>
+        </div>
+
+        <!-- CRT/System Shutdown Overlay (Hidden by default) -->
+        <div id="shutdownOverlay" class="absolute inset-0 bg-[#000000] z-50 flex flex-col items-center justify-center transition-all duration-1000 opacity-0 pointer-events-none">
+            <div class="absolute w-full h-[2px] bg-white/20 top-1/2 -translate-y-1/2 shadow-[0_0_15px_#fff] animate-pulse"></div>
+            <div class="text-center space-y-4 px-6 relative z-10">
+                <span class="font-mono text-xs tracking-[0.3em] text-red-500 uppercase font-semibold block animate-pulse">Session Terminated</span>
+                <p class="serif-font text-zinc-400 text-2xl md:text-3xl font-light">Safe to close this tab.</p>
+                <button onclick="reviveSystem()" class="text-[10px] font-mono tracking-widest text-zinc-600 hover:text-white transition duration-200 mt-8 uppercase">
+                    [ Reboot Terminal ]
+                </button>
+            </div>
+        </div>
+
+        <!-- Top spacing / Logo (Invisible or clean for layout) -->
+        <div class="w-full flex justify-between items-center z-10">
+            <span class="text-base sm:text-lg md:text-2xl tracking-[0.3em] uppercase text-zinc-400 font-semibold">SYSTEM // 404</span>
+            <span class="text-sm sm:text-base md:text-lg tracking-[0.3em] text-zinc-500 font-light">EST. 2026</span>
+        </div>
+
+        <!-- Content Area -->
+        <div class="w-full flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 my-auto z-10">
+            
+            <!-- Left Side: Custom Particle Ghost Canvas (Scaled larger) -->
+            <div class="relative w-[320px] h-[320px] sm:w-[440px] sm:h-[440px] md:w-[520px] md:h-[520px] flex items-center justify-center floating-ghost-container">
+                <canvas id="ghostCanvas" class="absolute w-full h-full cursor-pointer" title="Hover or drag over the ghost!"></canvas>
+            </div>
+
+            <!-- Right Side: Clean elegant typography block (Scaled larger) -->
+            <div class="flex-1 text-center md:text-left max-w-lg flex flex-col items-center md:items-start justify-center">
+                <!-- Serif Oops! Heading (Much larger scale) -->
+                <h1 class="serif-font text-white text-7xl sm:text-9xl md:text-[130px] font-normal leading-none tracking-tight mb-6 sm:mb-8">
+                    Oops!
+                </h1>
+                
+                <!-- Subtitle matching reference text style -->
+                <p class="text-[#888888] font-light text-base sm:text-lg md:text-xl tracking-wide mb-10 max-w-[380px] md:max-w-none leading-relaxed">
+                    We couldn't find the page you were looking for
+                </p>
+
+                <!-- Classy Pill Button -->
+                <button onclick="goBack()" class="btn-shadow px-12 py-4 rounded-full bg-white text-black font-normal text-sm tracking-widest uppercase bg-opacity-100 hover:bg-opacity-90 active:scale-95">
+                    Go back
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Bottom spacing / Status bar -->
+        <div class="w-full flex justify-between items-center text-[10px] tracking-wider text-zinc-600 z-10 font-mono">
+            <span>DEFLECTOR_ACTIVE: TRUE</span>
+            <span>COORDINATE_LOST_DEEP_SPACE</span>
+        </div>
+    </div>
+
+    <!-- Web Audio Synthesizer & Canvas Script -->
+    <script>
+        // Audio Synthesizer (Ambient Space Wind / Chimes)
+        let audioCtx = null;
+        let lastChimeTime = 0;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function triggerGhostChime() {
+            initAudio();
+            if (!audioCtx) return;
+            
+            const now = audioCtx.currentTime;
+            if (now - lastChimeTime < 0.6) return; // limit frequency of audio trigger
+            lastChimeTime = now;
+
+            try {
+                // High frequency dreamy crystal chime
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+
+                osc.type = 'sine';
+                // Generates an elegant high harmonic pitch
+                const baseFreq = 880 + Math.random() * 440;
+                osc.frequency.setValueAtTime(baseFreq, now);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1500, now);
+
+                gain.gain.setValueAtTime(0.0, now);
+                gain.gain.linearRampToValueAtTime(0.04, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 1.2);
+            } catch (e) {
+                // Audio autoplay might be suspended briefly on load
+            }
+        }
+
+        // --- GHOST CANVAS PARTICLE SIMULATION ---
+        const canvas = document.getElementById('ghostCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Track local mouse state
+        const mouse = { x: 0, y: 0, targetX: 0, targetY: 0, isHovering: false };
+        let canvasWidth, canvasHeight;
+
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const size = canvas.getBoundingClientRect();
+            canvasWidth = size.width;
+            canvasHeight = size.height;
+            canvas.width = canvasWidth * dpr;
+            canvas.height = canvasHeight * dpr;
+            ctx.scale(dpr, dpr);
+            
+            // Initial center coordinate default
+            mouse.targetX = canvasWidth / 2;
+            mouse.targetY = canvasHeight / 2 - 30;
+            mouse.x = mouse.targetX;
+            mouse.y = mouse.targetY;
+        }
+
+        // Particle Class to create the Grainy texture / Dissolving Tail
+        class GrainParticle {
+            constructor(x, y, isDoubleExposure = false) {
+                this.x = x + (Math.random() - 0.5) * 12;
+                this.y = y + (Math.random() - 0.5) * 12;
+                this.vx = (Math.random() - 0.5) * 0.8;
+                // Double exposure rings drift slightly differently to look artistic
+                this.vy = isDoubleExposure ? (Math.random() * 0.2 - 0.1) : (Math.random() * 1.2 + 0.6);
+                
+                // Opacities & sizing mimicking grainy sand texture
+                this.alpha = Math.random() * 0.35 + 0.1;
+                this.size = Math.random() * 1.8 + 0.5;
+                this.decay = Math.random() * 0.005 + 0.003;
+                this.waveSpeed = Math.random() * 0.03 + 0.01;
+                this.waveAmp = Math.random() * 0.8 + 0.2;
+                this.angle = Math.random() * Math.PI * 2;
+                this.isDoubleExposure = isDoubleExposure;
+            }
+
+            update() {
+                this.angle += this.waveSpeed;
+                this.x += this.vx + Math.sin(this.angle) * this.waveAmp;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+                if (this.alpha < 0) this.alpha = 0;
+            }
+
+            draw() {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const particles = [];
+        let time = 0;
+
+        // Draw Loop
+        function animate() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            time += 0.025;
+
+            // Interpolate mouse smoothly for organic fluid movement
+            mouse.x += (mouse.targetX - mouse.x) * 0.1;
+            mouse.y += (mouse.targetY - mouse.y) * 0.1;
+
+            // Define central ghost head center coordinates
+            const headX = canvasWidth / 2 + Math.sin(time) * 4;
+            const headY = canvasHeight / 2 - 35 + Math.cos(time * 0.7) * 3;
+            const headRadius = canvasWidth * 0.16; // Perfectly scaled head
+
+            // 1. Generate Body Tail Particles (flowing downwards in a ghostly shape)
+            if (particles.length < 900) {
+                // Emit particles inside the head bottom hemisphere to form a gown
+                const emitAngle = Math.PI * (Math.random() * 1.0); // downwards facing
+                const rx = headX + Math.cos(emitAngle) * (headRadius * 0.8);
+                const ry = headY + Math.sin(emitAngle) * (headRadius * 0.5);
+                particles.push(new GrainParticle(rx, ry));
+            }
+
+            // 2. Generate the Gorgeous Double Exposure Halo Ring (offset circle to the top left)
+            const haloX = headX - headRadius * 0.32;
+            const haloY = headY - headRadius * 0.12;
+            const haloRadius = headRadius * 1.05;
+
+            for (let i = 0; i < 4; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const offsetRadius = haloRadius + (Math.random() - 0.5) * 8;
+                const hpx = haloX + Math.cos(angle) * offsetRadius;
+                const hpy = haloY + Math.sin(angle) * offsetRadius;
+                particles.push(new GrainParticle(hpx, hpy, true));
+            }
+
+            // Update & Draw All Sand Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // 3. Draw Solid White Mask Head
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(headX, headY, headRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Draw Interactive Eye & Mouth Details (slowing looking at the mouse position)
+            const maxLookOffset = 4.5;
+            // Angle to mouse position
+            const angleToMouse = Math.atan2(mouse.y - headY, mouse.x - headX);
+            const distToMouse = Math.min(maxLookOffset, Math.hypot(mouse.x - headX, mouse.y - headY) * 0.05);
+            
+            const lookX = Math.cos(angleToMouse) * distToMouse;
+            const lookY = Math.sin(angleToMouse) * distToMouse;
+
+            // Face placement centers
+            const leftEyeX = headX - headRadius * 0.3 + lookX;
+            const rightEyeX = headX + headRadius * 0.3 + lookX;
+            const eyeY = headY - headRadius * 0.05 + lookY;
+            const mouthX = headX + lookX;
+            const mouthY = headY + headRadius * 0.2 + lookY;
+
+            // Draw cute curved closed/sleeping eyes matching the uploaded design
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+
+            // Left Eye Arc
+            ctx.beginPath();
+            ctx.arc(leftEyeX, eyeY - 2, 8, Math.PI, 0, false); // Downwards curve
+            ctx.stroke();
+
+            // Right Eye Arc
+            ctx.beginPath();
+            ctx.arc(rightEyeX, eyeY - 2, 8, Math.PI, 0, false); // Downwards curve
+            ctx.stroke();
+
+            // Draw Surprised open mouth (clean solid oval)
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.ellipse(mouthX, mouthY, 6, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Handle Interactive Mouse Movement Over Canvas
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.targetX = e.clientX - rect.left;
+            mouse.targetY = e.clientY - rect.top;
+            
+            // Sound feedback on enter/movement inside the ghost region
+            if (!mouse.isHovering) {
+                mouse.isHovering = true;
+                triggerGhostChime();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouse.targetX = canvasWidth / 2;
+            mouse.targetY = canvasHeight / 2 - 30;
+            mouse.isHovering = false;
+        });
+
+        // Touch support for mobiles/tablets
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                mouse.targetX = e.touches[0].clientX - rect.left;
+                mouse.targetY = e.touches[0].clientY - rect.top;
+                triggerGhostChime();
+            }
+        }, { passive: true });
+
+        // Go back routing / Browser Exit function
+        function goBack() {
+            initAudio();
+            playSynthSound();
+            
+            // 1. Attempt to close the window
+            window.close();
+            
+            // 2. Secondary browser trick to force close
+            try {
+                window.open('', '_self', '');
+                window.close();
+            } catch (e) {
+                console.log("Direct close blocked by browser security rules.");
+            }
+
+            // 3. Fallback: If browser blocks window.close(), simulate a premium system shutdown
+            setTimeout(() => {
+                const overlay = document.getElementById('shutdownOverlay');
+                overlay.classList.remove('pointer-events-none');
+                overlay.classList.remove('opacity-0');
+                overlay.classList.add('opacity-100');
+            }, 300);
+        }
+
+        // Action to revive/reboot the system from the shutdown state
+        function reviveSystem() {
+            initAudio();
+            playSynthSound();
+            const overlay = document.getElementById('shutdownOverlay');
+            overlay.classList.add('opacity-0');
+            overlay.classList.add('pointer-events-none');
+            overlay.classList.remove('opacity-100');
+        }
+
+        // Clean subtle button click synth
+        function playSynthSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.frequency.setValueAtTime(329.63, now); // Sweet E4 note
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(now + 0.4);
+        }
+
+        // Start Up sequence
+        window.addEventListener('load', () => {
+            setupCanvas();
+            animate();
+        });
+        window.addEventListener('resize', setupCanvas);
+
+    </script>
+</body>
+</html>

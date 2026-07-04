@@ -1,0 +1,3284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VerilogIDE — HDL Design Environment</title>
+<style>
+/* ═══════════════════════════════════════════════
+   RESET + ROOT
+═══════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#0d1117;--bg1:#161b22;--bg2:#21262d;--bg3:#30363d;
+  --fg0:#e6edf3;--fg1:#c9d1d9;--fg2:#8b949e;--fg3:#484f58;
+  --blue:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;
+  --purple:#d2a8ff;--orange:#ffa657;--cyan:#79c0ff;
+  --blue-bg:#0c1e40;--green-bg:#0f2d1a;--red-bg:#2d0f0f;--yellow-bg:#2d1f00;
+  --font-mono:'Courier New',Courier,monospace;
+  --radius:4px;--transition:0.12s;
+}
+body{font-family:var(--font-mono);background:var(--bg0);color:var(--fg0);
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+
+/* ═══════════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════════ */
+.topbar{display:flex;align-items:center;gap:5px;padding:5px 10px;
+  background:var(--bg1);border-bottom:1px solid var(--bg3);flex-shrink:0;flex-wrap:wrap}
+.logo{font-size:15px;font-weight:700;color:var(--blue);letter-spacing:1.5px;margin-right:6px;white-space:nowrap}
+.logo span{color:var(--fg2);font-weight:400}
+
+/* buttons */
+.btn{font-size:11px;padding:4px 11px;border-radius:var(--radius);cursor:pointer;border:1px solid;
+  transition:all var(--transition);white-space:nowrap;font-family:var(--font-mono)}
+.btn-default{background:var(--bg2);border-color:var(--bg3);color:var(--fg1)}
+.btn-default:hover{background:var(--bg3);border-color:var(--blue);color:var(--fg0)}
+.btn-green{background:#1a3d26;border-color:var(--green);color:var(--green)}
+.btn-green:hover{background:var(--green);color:#000}
+.btn-blue{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.btn-blue:hover{background:var(--blue);color:#000}
+.btn-purple{background:#2a1a4d;border-color:var(--purple);color:var(--purple)}
+.btn-purple:hover{background:var(--purple);color:#000}
+.btn-red{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.btn-red:hover{background:var(--red);color:#fff}
+.btn-yellow{background:var(--yellow-bg);border-color:var(--yellow);color:var(--yellow)}
+.btn-yellow:hover{background:var(--yellow);color:#000}
+.btn:disabled{opacity:0.45;cursor:not-allowed}
+
+.spacer{flex:1;min-width:4px}
+
+/* backend pill */
+#be-pill{font-size:10px;padding:2px 10px;border-radius:12px;border:1px solid var(--bg3);
+  color:var(--fg2);white-space:nowrap;transition:all 0.3s}
+#be-pill.live{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+#be-pill.dead{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+
+/* status */
+.status{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--fg3);flex-shrink:0}
+.sdot.ok{background:var(--green)}
+.sdot.err{background:var(--red)}
+.sdot.run{background:var(--yellow);animation:blink .7s ease-in-out infinite}
+.sdot.warn{background:var(--yellow)}
+#stext{font-size:11px;color:var(--fg2)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ═══════════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════════ */
+.main{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* ── sidebar ── */
+.sidebar{width:175px;background:var(--bg1);border-right:1px solid var(--bg3);
+  display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sb-section{padding:8px 6px 4px}
+.sb-label{font-size:10px;color:var(--fg3);text-transform:uppercase;letter-spacing:.9px;
+  padding:2px 4px 5px;user-select:none}
+.sb-item{font-size:11px;padding:4px 8px;border-radius:var(--radius);cursor:pointer;
+  color:var(--fg2);display:flex;align-items:center;gap:7px;transition:background var(--transition)}
+.sb-item:hover,.sb-item.active{background:var(--bg2);color:var(--blue)}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.sb-dot.mod{background:var(--yellow)}.sb-dot.err{background:var(--red)}
+.sb-item input,.sb-item select{background:transparent;border:none;color:inherit;
+  font-family:var(--font-mono);font-size:11px;width:100%;cursor:pointer;outline:none}
+select option{background:var(--bg1)}
+
+/* ── editor area ── */
+.editors{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.ed-tabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--bg3);flex-shrink:0}
+.etab{font-size:11px;padding:6px 14px;cursor:pointer;color:var(--fg2);
+  border-right:1px solid var(--bg3);white-space:nowrap;border-top:2px solid transparent;
+  transition:color var(--transition)}
+.etab.active{color:var(--fg0);background:var(--bg0);border-top-color:var(--blue)}
+.etab:hover:not(.active){color:var(--fg1)}
+.ed-body{display:flex;flex:1;overflow:hidden;min-height:0}
+.code-col{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.code-hdr{font-size:11px;color:var(--fg2);padding:3px 10px;background:var(--bg1);
+  border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.code-wrap{flex:1;display:flex;overflow:hidden;min-height:0;position:relative}
+#monaco-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:var(--bg0);color:var(--fg2);font-size:12px;z-index:5;gap:8px}
+
+/* ── console ── */
+.console{height:165px;min-height:60px;max-height:75vh;background:var(--bg0);border-top:1px solid var(--bg3);
+  flex-shrink:0;display:flex;flex-direction:column;position:relative}
+.console-resize-handle{position:absolute;top:-4px;left:0;right:0;height:8px;cursor:ns-resize;z-index:10}
+.console-resize-handle:hover,.console-resize-handle.dragging{background:var(--blue);opacity:0.35}
+.console-resize-handle::after{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);
+  width:36px;height:3px;border-radius:2px;background:var(--bg3)}
+.console-resize-handle:hover::after,.console-resize-handle.dragging::after{background:var(--blue)}
+.console-hdr{font-size:11px;color:var(--fg2);padding:3px 10px;background:var(--bg1);
+  border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.console-out{flex:1;overflow-y:auto;padding:5px 10px;font-size:11px;line-height:1.65;
+  scroll-behavior:smooth}
+.c-err{color:var(--red)}.c-warn{color:var(--yellow)}.c-ok{color:var(--green)}
+.c-info{color:var(--blue)}.c-muted{color:var(--fg3)}.c-ai{color:var(--purple)}
+.c-sim{color:var(--cyan)}.c-white{color:var(--fg1)}
+.console-out .err-line{cursor:pointer;text-decoration:underline dotted}
+.console-out .err-line:hover{color:var(--red)}
+
+/* ── right panel ── */
+.rpanel{width:410px;display:flex;flex-direction:column;flex-shrink:0;
+  border-left:1px solid var(--bg3);overflow:hidden}
+.vtabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--bg3);flex-shrink:0;align-items:center;min-width:0}
+.vtab-scroll{display:flex;flex-shrink:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.vtab-scroll::-webkit-scrollbar{height:3px}
+.vtab{font-size:10.5px;padding:6px 8px;cursor:pointer;color:var(--fg2);white-space:nowrap;flex-shrink:0;
+  border-right:1px solid var(--bg3);border-top:2px solid transparent;white-space:nowrap}
+.vtab.active{color:var(--fg0);background:var(--bg0);border-top-color:var(--blue)}
+.vtab:hover:not(.active){color:var(--fg1)}
+.vcont{flex:1;overflow:auto;padding:10px}
+.vcont.fit-mode{display:flex;flex-direction:column;overflow:hidden;padding:8px}
+.vcont.fit-mode .fit-stretch{flex:1;min-height:0;display:flex;flex-direction:column;
+  transform:scale(var(--fit-scale,1));transform-origin:center center;transition:transform .12s ease}
+.vcont.fit-mode .fit-stretch svg{flex:1;width:100%;height:100%;min-height:0}
+.fit-toggle-btn{font-size:10px;padding:2px 8px;background:var(--bg2);border:1px solid var(--bg3);
+  color:var(--fg2);border-radius:3px;cursor:pointer;white-space:nowrap}
+.fit-toggle-btn:hover{border-color:var(--blue);color:var(--blue)}
+.fit-toggle-btn.active{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+
+/* zoom bar — slider to scale down fit-mode diagrams (shown only when fit is on) */
+.zoom-bar{display:flex;align-items:center;gap:7px;padding:4px 10px;background:var(--bg1);
+  border-bottom:1px solid var(--bg3);flex-shrink:0}
+.zoom-bar #zoom-pct{font-size:10px;color:var(--fg2);width:32px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.zoom-bar input[type="range"]{flex:1;height:3px;-webkit-appearance:none;appearance:none;
+  background:var(--bg3);border-radius:2px;outline:none;cursor:pointer}
+.zoom-bar input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:11px;height:11px;border-radius:50%;background:var(--blue);cursor:pointer;border:none}
+.zoom-bar input[type="range"]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;
+  background:var(--blue);cursor:pointer;border:none}
+.zoom-reset-btn{font-size:10px;padding:1px 6px;background:var(--bg2);border:1px solid var(--bg3);
+  color:var(--fg2);border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1.4}
+.zoom-reset-btn:hover{border-color:var(--blue);color:var(--blue)}
+
+/* ── fullscreen overlay ── */
+.fullscreen-overlay{
+  position:fixed;inset:0;background:var(--bg0);z-index:200;
+  display:flex;flex-direction:column;
+}
+.fullscreen-header{
+  display:flex;align-items:center;gap:8px;padding:8px 14px;
+  background:var(--bg1);border-bottom:1px solid var(--bg3);flex-shrink:0;
+}
+.fullscreen-title{font-size:13px;color:var(--fg1);font-weight:600}
+.fullscreen-body{flex:1;overflow:auto;padding:14px;}
+.fullscreen-body.fit-mode{display:flex;flex-direction:column;overflow:hidden;padding:10px}
+.fullscreen-body.fit-mode .fit-stretch{flex:1;min-height:0;display:flex;flex-direction:column;
+  transform:scale(var(--fit-scale,1));transform-origin:center center;transition:transform .12s ease}
+.fullscreen-body.fit-mode .fit-stretch svg{flex:1;width:100%;height:100%;min-height:0}
+.fullscreen-body.fit-mode pre{flex:1;min-height:0}
+
+/* ── split editor ── */
+.ed-split{display:flex;flex:1;overflow:hidden;min-height:0;gap:0}
+.ed-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.ed-pane + .ed-pane{border-left:2px solid var(--bg3)}
+.ed-pane-hdr{font-size:11px;padding:3px 10px;background:var(--bg1);
+  border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:6px;flex-shrink:0}
+.ed-pane-hdr .pane-title{color:var(--fg1);font-size:11px}
+.ed-tabs-split{display:flex;align-items:center;background:var(--bg1);
+  border-bottom:1px solid var(--bg3);flex-shrink:0;gap:0}
+.split-toggle-btn{font-size:10px;margin-left:auto;margin-right:6px;padding:2px 8px;
+  background:var(--bg2);border:1px solid var(--bg3);color:var(--fg2);border-radius:3px;cursor:pointer;}
+.split-toggle-btn:hover{border-color:var(--blue);color:var(--blue)}
+
+/* ── badges ── */
+.badge{font-size:10px;padding:1px 7px;border-radius:12px;background:var(--bg2);color:var(--fg2)}
+.badge.ok{background:var(--green-bg);color:var(--green)}
+.badge.err{background:var(--red-bg);color:var(--red)}
+.badge.warn{background:var(--yellow-bg);color:var(--yellow)}
+.badge.info{background:var(--blue-bg);color:var(--blue)}
+.badge.ai{background:#2a1a4d;color:var(--purple)}
+
+/* ── waveform ── */
+.wave-wrap{background:var(--bg0);border:1px solid var(--bg3);border-radius:var(--radius);overflow:hidden}
+.wave-toolbar{display:flex;align-items:center;gap:6px;padding:5px 8px;
+  background:var(--bg1);border-bottom:1px solid var(--bg3)}
+.wave-toolbar label{font-size:10px;color:var(--fg2)}
+#wave-svg{width:100%;display:block}
+
+/* ── schematic ── */
+.schema-wrap svg{width:100%;background:var(--bg0);border:1px solid var(--bg3);
+  border-radius:var(--radius);display:block}
+
+/* ── block table ── */
+.port-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}
+.port-table th{color:var(--fg3);text-align:left;padding:3px 8px;
+  border-bottom:1px solid var(--bg2);font-weight:normal;letter-spacing:.5px;font-size:10px}
+.port-table td{padding:3px 8px;border-bottom:1px solid #1a1f27}
+.port-table tr:hover td{background:var(--bg1)}
+
+/* ── app cards ── */
+.app-card{background:var(--bg1);border:1px solid var(--bg3);border-radius:5px;
+  padding:9px 12px;margin-bottom:8px;transition:border-color var(--transition)}
+.app-card:hover{border-color:var(--blue)}
+.app-card h4{font-size:12px;color:var(--blue);margin-bottom:3px}
+.app-card p{font-size:11px;color:var(--fg2);line-height:1.55}
+
+/* ── modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;
+  display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg1);border:1px solid var(--bg3);border-radius:6px;
+  padding:20px;min-width:340px;max-width:520px;width:90%}
+.modal h3{font-size:13px;color:var(--fg0);margin-bottom:12px}
+.modal input,.modal select{width:100%;background:var(--bg2);border:1px solid var(--bg3);
+  color:var(--fg1);font-family:var(--font-mono);font-size:12px;padding:6px 8px;
+  border-radius:var(--radius);margin-bottom:8px;outline:none}
+.modal input:focus,.modal select:focus{border-color:var(--blue)}
+.modal textarea{width:100%;background:var(--bg2);border:1px solid var(--bg3);
+  color:var(--fg1);font-family:var(--font-mono);font-size:12px;padding:6px 8px;
+  border-radius:var(--radius);margin-bottom:8px;outline:none;resize:vertical;min-height:60px}
+.modal textarea:focus{border-color:var(--blue)}
+.modal-wide{max-width:760px}
+.modal label{display:block;font-size:10px;color:var(--fg3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+
+/* ── scrollbars ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg0)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--fg3)}
+
+/* ── loading spinner ── */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--bg3);
+  border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── tooltip ── */
+[data-tip]{position:relative}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:110%;left:50%;
+  transform:translateX(-50%);background:var(--bg2);color:var(--fg1);font-size:10px;
+  padding:3px 7px;border-radius:var(--radius);border:1px solid var(--bg3);
+  white-space:nowrap;z-index:50;pointer-events:none}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ TOP BAR ═══════════════════════════════════ -->
+<div class="topbar">
+  <span class="logo">⬡ Verilog<span>IDE</span></span>
+
+  <button class="btn btn-green" onclick="runCompile()" data-tip="Syntax check with Icarus Verilog">▶ Compile</button>
+  <button class="btn btn-blue"  onclick="runSimulate()" data-tip="Compile + run vvp simulation">⚡ Simulate</button>
+  <button class="btn btn-purple" onclick="generateTB()" data-tip="AI-generate testbench via Claude">✦ AI Testbench</button>
+  <button class="btn btn-purple" onclick="showAIDesignModal()" data-tip="AI-generate a new design from a prompt">⚙ AI Design</button>
+  <button class="btn btn-yellow" onclick="formatCode()" data-tip="Auto-format code indentation">⇌ Format</button>
+  <button class="btn btn-default" onclick="runSynthesize()" data-tip="Synthesize design.v to a gate-level netlist via Yosys">🔩 Synthesize</button>
+  <button class="btn btn-default" onclick="showSaveModal()" data-tip="Save to local file">💾 Save</button>
+  <button class="btn btn-default" onclick="triggerLoad()" data-tip="Load .v file from disk">📂 Load</button>
+  <input type="file" id="file-input" accept=".v,.sv" style="display:none" onchange="loadFile(event)">
+
+  <div class="spacer"></div>
+
+  <span id="be-pill" class="dead">● backend offline</span>
+  <div class="status"><span class="sdot" id="sdot"></span><span id="stext">Ready</span></div>
+</div>
+
+<!-- ═══════════════════════════════════ MAIN ═══════════════════════════════════ -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Files</div>
+      <div class="sb-item active" id="fi-design" onclick="switchTab('design')">
+        <span class="sb-dot" id="dot-design"></span>design.v
+      </div>
+      <div class="sb-item" id="fi-tb" onclick="switchTab('tb')">
+        <span class="sb-dot mod" id="dot-tb"></span>testbench.v
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Language</div>
+      <div class="sb-item">
+        <select id="lang" onchange="onLangChange()">
+          <option value="verilog">Verilog HDL</option>
+          <option value="systemverilog">SystemVerilog</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Examples</div>
+      <div class="sb-item" onclick="loadEx('alu')">📐 ALU 4-bit</div>
+      <div class="sb-item" onclick="loadEx('counter')">🔢 Counter</div>
+      <div class="sb-item" onclick="loadEx('mux')">🔀 4:1 MUX</div>
+      <div class="sb-item" onclick="loadEx('ff')">⏱ D Flip-Flop</div>
+      <div class="sb-item" onclick="loadEx('fsm')">🚦 Traffic FSM</div>
+      <div class="sb-item" onclick="loadEx('uart')">📡 UART TX</div>
+      <div class="sb-item" onclick="loadEx('fifo')">📦 FIFO 8x8</div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Analysis</div>
+      <div id="analysis-panel" style="font-size:10px;color:var(--fg3);padding:4px"></div>
+    </div>
+  </div>
+
+  <!-- EDITORS -->
+  <div class="editors">
+    <!-- Tab bar + split toggle -->
+    <div class="ed-tabs-split">
+      <div class="etab active" id="etab-design" onclick="switchTab('design')">design.v</div>
+      <div class="etab" id="etab-tb" onclick="switchTab('tb')">testbench.v</div>
+      <div class="spacer"></div>
+      <button class="split-toggle-btn" id="split-btn" onclick="toggleSplit()" data-tip="Toggle split view">⊟ Split</button>
+    </div>
+    <!-- Single-pane body (default) -->
+    <div class="ed-body" id="ed-single">
+      <div class="code-col">
+        <div class="code-hdr">
+          <span id="ed-fname" style="color:var(--fg1)">design.v</span>
+          <span class="badge info" id="lang-badge">Verilog HDL</span>
+          <span class="badge" id="err-badge" style="display:none">0 errors</span>
+          <div class="spacer"></div>
+          <span id="lc" style="font-size:10px;color:var(--fg3)">Ln 1, Col 1</span>
+          <span id="char-count" style="font-size:10px;color:var(--fg3)">0 chars</span>
+        </div>
+        <div class="code-wrap">
+          <div id="monaco-loading"><span class="spin"></span> Loading Monaco Editor…</div>
+          <div id="monaco-container" style="flex:1;min-width:0"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Split-pane body (hidden by default) -->
+    <div class="ed-split" id="ed-split-pane" style="display:none">
+      <!-- Left pane: design.v -->
+      <div class="ed-pane">
+        <div class="ed-pane-hdr">
+          <span class="pane-title">design.v</span>
+          <span class="badge info" id="lang-badge-l">Verilog HDL</span>
+          <span class="badge" id="err-badge-l" style="display:none"></span>
+          <div class="spacer"></div>
+          <span id="lc-l" style="font-size:10px;color:var(--fg3)">Ln 1</span>
+        </div>
+        <div class="code-wrap">
+          <div id="monaco-design-split" style="flex:1;min-width:0"></div>
+        </div>
+      </div>
+      <!-- Right pane: testbench.v -->
+      <div class="ed-pane">
+        <div class="ed-pane-hdr">
+          <span class="pane-title">testbench.v</span>
+          <span class="badge" id="dot-tb-s" style="color:var(--yellow)">●</span>
+          <div class="spacer"></div>
+          <span id="lc-r" style="font-size:10px;color:var(--fg3)">Ln 1</span>
+        </div>
+        <div class="code-wrap">
+          <div id="monaco-tb-split" style="flex:1;min-width:0"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSOLE -->
+    <div class="console" id="console-panel">
+      <div class="console-resize-handle" id="console-resize-handle" title="Drag to resize"></div>
+      <div class="console-hdr">
+        <span>Console</span>
+        <span class="badge" id="cbadge">idle</span>
+        <div class="spacer"></div>
+        <button class="btn btn-default" style="padding:2px 7px;font-size:10px" onclick="clrConsole()">✕ Clear</button>
+        <button class="btn btn-default" style="padding:2px 7px;font-size:10px" onclick="copyConsole()">⎘ Copy</button>
+      </div>
+      <div class="console-out" id="cout">
+        <div class="c-muted">// VerilogIDE v2.0 — Icarus Verilog 12 + Claude AI</div>
+        <div class="c-muted">// ▶ Compile = syntax check   ⚡ Simulate = full run + VCD   ✦ AI = auto testbench</div>
+        <div class="c-muted">// ⚙ AI Design = generate RTL from a prompt   🔩 Synthesize = Yosys gate-level netlist</div>
+        <div class="c-muted">// Start backend:  uvicorn server:app --port 8001</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="rpanel">
+    <div class="vtabs">
+      <div class="vtab-scroll">
+        <div class="vtab active" id="vtab-wave"   onclick="switchView('wave')">≋ Wave</div>
+        <div class="vtab"        id="vtab-schema" onclick="switchView('schema')">◈ Schem</div>
+        <div class="vtab"        id="vtab-block"  onclick="switchView('block')">⬡ Block</div>
+        <div class="vtab"        id="vtab-vcd"    onclick="switchView('vcd')">📈 VCD</div>
+        <div class="vtab"        id="vtab-netlist" onclick="switchView('netlist')">🔩 Netlist</div>
+        <div class="vtab"        id="vtab-apps"   onclick="switchView('apps')">🌐 Apps</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-default fit-toggle-btn" id="fit-btn" style="padding:2px 6px;font-size:10px;margin:2px 2px;border-radius:3px;flex-shrink:0"
+        onclick="toggleFitMode()" title="Fit diagram to panel">⛶</button>
+      <button class="btn btn-default" style="padding:2px 6px;font-size:11px;margin:2px 4px;border-radius:3px;flex-shrink:0"
+        onclick="openFullscreen()" title="Fullscreen view (F11)">⛶⛶</button>
+    </div>
+    <div class="zoom-bar" id="zoom-bar" style="display:none">
+      <span id="zoom-pct">100%</span>
+      <input type="range" id="zoom-slider" min="40" max="100" value="100" step="5" oninput="onZoomSlider(this.value)">
+      <button class="zoom-reset-btn" onclick="resetZoom()" title="Reset to 100%">↺</button>
+    </div>
+    <div class="vcont" id="vcont"></div>
+  </div>
+</div>
+
+<!-- FULLSCREEN OVERLAY -->
+<div id="fullscreen-overlay" class="fullscreen-overlay" style="display:none">
+  <div class="fullscreen-header">
+    <span class="fullscreen-title" id="fs-title">Waveform</span>
+    <span class="badge info" id="fs-badge"></span>
+    <div class="zoom-bar" id="fs-zoom-bar" style="display:none;background:transparent;border:none;padding:0;margin-left:14px;width:180px">
+      <span id="fs-zoom-pct">40%</span>
+      <input type="range" id="fs-zoom-slider" min="40" max="100" value="40" step="5" oninput="onFsZoomSlider(this.value)">
+      <button class="zoom-reset-btn" onclick="resetFsZoom()" title="Reset to 100%">↺</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-default fit-toggle-btn active" id="fs-fit-btn" style="padding:3px 10px;font-size:11px" onclick="toggleFsFitMode()">⛶ Fit Screen</button>
+    <button class="btn btn-default" style="padding:3px 10px;font-size:11px" onclick="closeFullscreen()">✕ Close (Esc)</button>
+  </div>
+  <div class="fullscreen-body" id="fs-body"></div>
+</div>
+
+<!-- SAVE MODAL -->
+<div id="save-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <h3>💾 Save File</h3>
+    <select id="save-which">
+      <option value="design">design.v</option>
+      <option value="tb">testbench.v</option>
+      <option value="both">Both files (zip)</option>
+    </select>
+    <input type="text" id="save-name" placeholder="filename (without extension)" value="design">
+    <div class="modal-btns">
+      <button class="btn btn-default" onclick="closeSaveModal()">Cancel</button>
+      <button class="btn btn-blue" onclick="doSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI DESIGN MODAL -->
+<div id="ai-design-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <h3>⚙ AI Design Generator</h3>
+    <label for="ai-design-name">design "name"</label>
+    <input type="text" id="ai-design-name" placeholder='e.g. 8-bit ripple carry adder' autocomplete="off">
+    <label for="ai-design-spec">specifications (optional)</label>
+    <textarea id="ai-design-spec" placeholder="e.g. parameterized width, synchronous active-high reset, carry-out output..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-default" onclick="closeAIDesignModal()">Cancel</button>
+      <button class="btn btn-purple" onclick="doGenerateDesign()" id="ai-design-go-btn">✦ Generate</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI DESIGN PREVIEW MODAL -->
+<div id="ai-design-preview-modal" class="modal-overlay" style="display:none">
+  <div class="modal modal-wide">
+    <h3>⚙ Generated Design <span class="badge info" id="ai-design-source-badge" style="margin-left:6px"></span></h3>
+    <textarea id="ai-design-preview-code" style="min-height:340px;font-size:11px;white-space:pre" spellcheck="false"></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-default" onclick="closeAIDesignPreview()">Discard</button>
+      <button class="btn btn-purple" onclick="insertAIDesign()">⬇ Insert into design.v</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  CONSTANTS & STATE
+// ════════════════════════════════════════════════════════════════
+// Local backend (uvicorn server:app --reload --port 8001). Swap back to the
+// Render URL below if you deploy instead of running locally.
+const API = 'https://verilog-ide-backend.onrender.com';
+// const API = 'https://verilog-ide-backend.onrender.com';
+let backendLive = false;
+let curTab = 'design', curView = 'wave', curEx = 'alu';
+let animId = null, waveAnimOn = false;
+let lastVCD = null, lastPorts = null;
+let fitModeOn = true;     // right-panel fit-to-screen (default ON, fill width+height)
+let fsFitModeOn = true;   // fullscreen fit-to-screen (default ON, fill width+height)
+
+const files = {
+  design: '',
+  tb: ''
+};
+
+// DOM refs
+const cout = document.getElementById('cout');
+
+// Monaco state
+let editor = null, designModel = null, tbModel = null, monacoReady = false;
+function activeModel(){ return curTab==='design' ? designModel : tbModel; }
+function getCode(tab){ return tab==='design' ? designModel.getValue() : tbModel.getValue(); }
+function setCode(tab, code){
+  const m = tab==='design' ? designModel : tbModel;
+  if(m.getValue() !== code) m.setValue(code);
+  files[tab==='design'?'design':'tb'] = code;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  EXAMPLES
+// ════════════════════════════════════════════════════════════════
+const EX = {
+  alu:{name:'alu',
+    d:`\`timescale 1ns/1ps
+module alu_4bit(
+  input  [3:0] A, B,
+  input  [2:0] op,
+  output reg [3:0] result,
+  output reg       zero, carry
+);
+  // op encoding:
+  // 000=ADD  001=SUB  010=AND  011=OR
+  // 100=XOR  101=NOT  110=SHL  111=SHR
+  always @(*) begin
+    carry = 0;
+    case (op)
+      3'b000: {carry,result} = A + B;
+      3'b001: result = A - B;
+      3'b010: result = A & B;
+      3'b011: result = A | B;
+      3'b100: result = A ^ B;
+      3'b101: result = ~A;
+      3'b110: result = A << 1;
+      3'b111: result = A >> 1;
+      default: result = 4'b0000;
+    endcase
+    zero = (result == 4'b0000);
+  end
+endmodule`,
+    t:`\`timescale 1ns/1ps
+module tb_alu_4bit;
+  reg  [3:0] A, B;
+  reg  [2:0] op;
+  wire [3:0] result;
+  wire       zero, carry;
+
+  alu_4bit uut(
+    .A(A), .B(B), .op(op),
+    .result(result), .zero(zero), .carry(carry)
+  );
+
+  task run(input [3:0] a, b; input [2:0] o);
+    A=a; B=b; op=o; #10;
+    $display("%0t | A=%0d B=%0d op=%03b => result=%0d zero=%b carry=%b",
+             $time, A, B, op, result, zero, carry);
+  endtask
+
+  initial begin
+    $dumpfile("alu.vcd");
+    $dumpvars(0, tb_alu_4bit);
+    // ADD
+    run(4'd5,  4'd3,  3'b000);  // 5+3=8
+    run(4'd15, 4'd1,  3'b000);  // 15+1=0 carry
+    // SUB
+    run(4'd8,  4'd3,  3'b001);  // 8-3=5
+    run(4'd0,  4'd1,  3'b001);  // 0-1 underflow
+    // AND / OR
+    run(4'hF,  4'hA,  3'b010);
+    run(4'hF,  4'hA,  3'b011);
+    // XOR / NOT
+    run(4'h5,  4'h5,  3'b100);  // zero result
+    run(4'hA,  4'h0,  3'b101);
+    // Shift
+    run(4'b0001, 4'h0, 3'b110);
+    run(4'b1000, 4'h0, 3'b111);
+    $finish;
+  end
+endmodule`},
+
+  counter:{name:'counter',
+    d:`module counter_4bit (
+  input  clk, rst,
+  output reg [3:0] count
+);
+  always @(posedge clk or posedge rst)
+    if (rst) count <= 4'b0000;
+    else     count <= count + 1'b1;
+endmodule`,
+    t:`\`timescale 1ns/1ps
+module tb_counter;
+  reg  clk, rst;
+  wire [3:0] count;
+
+  counter_4bit uut(.clk(clk),.rst(rst),.count(count));
+
+  initial clk = 0;
+  always  #5 clk = ~clk;
+
+  initial begin
+    $dumpfile("counter.vcd"); $dumpvars(0,tb_counter);
+    $monitor("%0t rst=%b count=%0d",$time,rst,count);
+    rst=1; #12; rst=0;
+    #200;
+    $finish;
+  end
+endmodule`},
+
+  mux:{name:'mux',
+    d:`module mux4to1 (
+  input  [3:0] d,
+  input  [1:0] sel,
+  output reg   y
+);
+  always @(*)
+    case (sel)
+      2'b00: y = d[0];
+      2'b01: y = d[1];
+      2'b10: y = d[2];
+      2'b11: y = d[3];
+    endcase
+endmodule`,
+    t:`\`timescale 1ns/1ps
+module tb_mux;
+  reg [3:0] d;
+  reg [1:0] sel;
+  wire y;
+
+  mux4to1 uut(.d(d),.sel(sel),.y(y));
+
+  initial begin
+    $dumpfile("mux.vcd"); $dumpvars;
+    d = 4'b1010;
+    sel=0;#10; sel=1;#10; sel=2;#10; sel=3;#10;
+    d = 4'b0101;
+    sel=0;#10; sel=1;#10; sel=2;#10; sel=3;#10;
+    $finish;
+  end
+endmodule`},
+
+  ff:{name:'ff',
+    d:`module d_ff (
+  input  clk, rst_n, d,
+  output reg q,
+  output     q_n
+);
+  assign q_n = ~q;
+  always @(posedge clk or negedge rst_n)
+    if (!rst_n) q <= 1'b0;
+    else        q <= d;
+endmodule`,
+    t:`\`timescale 1ns/1ps
+module tb_dff;
+  reg  clk, rst_n, d;
+  wire q, q_n;
+
+  d_ff uut(.clk(clk),.rst_n(rst_n),.d(d),.q(q),.q_n(q_n));
+
+  initial clk = 0;
+  always  #5 clk = ~clk;
+
+  initial begin
+    $dumpfile("dff.vcd"); $dumpvars;
+    $monitor("%0t d=%b q=%b q_n=%b",$time,d,q,q_n);
+    rst_n=0; d=0; #12;
+    rst_n=1;
+    repeat(8) begin
+      d=$random%2; #10;
+    end
+    $finish;
+  end
+endmodule`},
+
+  fsm:{name:'fsm',
+    d:`module traffic_fsm (
+  input      clk, rst,
+  output reg [1:0] state,
+  output reg red, green, yellow
+);
+  localparam S_RED=2'd0, S_GREEN=2'd1, S_YELLOW=2'd2;
+
+  always @(posedge clk or posedge rst) begin
+    if (rst) state <= S_RED;
+    else case (state)
+      S_RED:    state <= S_GREEN;
+      S_GREEN:  state <= S_YELLOW;
+      S_YELLOW: state <= S_RED;
+      default:  state <= S_RED;
+    endcase
+  end
+
+  always @(*) begin
+    red=0; green=0; yellow=0;
+    case (state)
+      S_RED:    red    = 1;
+      S_GREEN:  green  = 1;
+      S_YELLOW: yellow = 1;
+    endcase
+  end
+endmodule`,
+    t:`\`timescale 1ns/1ps
+module tb_fsm;
+  reg  clk, rst;
+  wire [1:0] state;
+  wire red, green, yellow;
+
+  traffic_fsm uut(.clk(clk),.rst(rst),.state(state),.red(red),.green(green),.yellow(yellow));
+
+  initial clk=0;
+  always  #5 clk=~clk;
+
+  initial begin
+    $dumpfile("fsm.vcd"); $dumpvars;
+    $monitor("%0t state=%0d R=%b G=%b Y=%b",$time,state,red,green,yellow);
+    rst=1; #12; rst=0;
+    #120;
+    $finish;
+  end
+endmodule`},
+
+  uart:{name:'uart',
+    d:`module uart_tx (
+  input        clk, rst,
+  input        tx_start,
+  input  [7:0] tx_data,
+  output reg   tx,
+  output reg   busy
+);
+  parameter BAUD_DIV = 10;  // clk_freq / baud_rate
+
+  reg [3:0]  bit_cnt;
+  reg [15:0] baud_cnt;
+  reg [9:0]  shift_reg;  // start + 8 data + stop
+
+  always @(posedge clk or posedge rst) begin
+    if (rst) begin
+      tx<=1; busy<=0; bit_cnt<=0; baud_cnt<=0;
+    end else if (!busy && tx_start) begin
+      shift_reg <= {1'b1, tx_data, 1'b0}; // stop,data,start
+      busy <= 1; bit_cnt <= 0; baud_cnt <= 0;
+    end else if (busy) begin
+      if (baud_cnt == BAUD_DIV-1) begin
+        baud_cnt <= 0;
+        tx <= shift_reg[0];
+        shift_reg <= shift_reg >> 1;
+        bit_cnt <= bit_cnt + 1;
+        if (bit_cnt == 9) begin busy<=0; tx<=1; end
+      end else baud_cnt <= baud_cnt + 1;
+    end
+  end
+endmodule`,
+    t:`\`timescale 1ns/1ps
+module tb_uart_tx;
+  reg       clk, rst, tx_start;
+  reg [7:0] tx_data;
+  wire      tx, busy;
+
+  uart_tx uut(.clk(clk),.rst(rst),.tx_start(tx_start),
+              .tx_data(tx_data),.tx(tx),.busy(busy));
+
+  initial clk=0;
+  always  #5 clk=~clk;
+
+  task send(input [7:0] d);
+    @(negedge busy or posedge clk);
+    tx_data=d; tx_start=1; #10; tx_start=0;
+    wait(!busy); #20;
+  endtask
+
+  initial begin
+    $dumpfile("uart.vcd"); $dumpvars;
+    rst=1; tx_start=0; #25; rst=0;
+    send(8'h41); // 'A'
+    send(8'h42); // 'B'
+    send(8'hFF);
+    send(8'h00);
+    $finish;
+  end
+endmodule`},
+
+  fifo:{name:'fifo',
+    d:`module fifo_8x8 (
+  input        clk, rst,
+  input        wr_en, rd_en,
+  input  [7:0] din,
+  output reg [7:0] dout,
+  output       full, empty
+);
+  reg [7:0] mem [0:7];
+  reg [2:0] wr_ptr, rd_ptr;
+  reg [3:0] count;
+
+  assign full  = (count == 8);
+  assign empty = (count == 0);
+
+  always @(posedge clk or posedge rst) begin
+    if (rst) begin
+      wr_ptr<=0; rd_ptr<=0; count<=0; dout<=0;
+    end else begin
+      if (wr_en && !full)  begin mem[wr_ptr]<=din; wr_ptr<=wr_ptr+1; count<=count+1; end
+      if (rd_en && !empty) begin dout<=mem[rd_ptr]; rd_ptr<=rd_ptr+1; count<=count-1; end
+    end
+  end
+endmodule`,
+    t:`\`timescale 1ns/1ps
+module tb_fifo;
+  reg       clk, rst, wr_en, rd_en;
+  reg [7:0] din;
+  wire [7:0] dout;
+  wire full, empty;
+
+  fifo_8x8 uut(.clk(clk),.rst(rst),.wr_en(wr_en),.rd_en(rd_en),
+               .din(din),.dout(dout),.full(full),.empty(empty));
+
+  initial clk=0;
+  always  #5 clk=~clk;
+
+  initial begin
+    $dumpfile("fifo.vcd"); $dumpvars;
+    rst=1; wr_en=0; rd_en=0; din=0; #12; rst=0;
+    // Write 8 bytes
+    repeat(8) begin din=$random; wr_en=1; #10; end
+    wr_en=0;
+    $display("full=%b",full);
+    // Read all
+    repeat(8) begin rd_en=1; #10; $display("dout=%h",dout); end
+    rd_en=0;
+    $display("empty=%b",empty);
+    $finish;
+  end
+endmodule`}
+};
+
+// ── Map module-name → example key ──
+const EX_MODULE_MAP = {};
+for(const [key, ex] of Object.entries(EX)){
+  const m = ex.d.match(/\bmodule\s+(\w+)/);
+  if(m) EX_MODULE_MAP[m[1]] = key;
+}
+
+let _detectTimer = null;
+function detectCurEx(){
+  const m = files.design.match(/\bmodule\s+(\w+)/);
+  const modName = m ? m[1] : null;
+  const newEx = (modName && EX_MODULE_MAP[modName]) ? EX_MODULE_MAP[modName] : 'custom';
+  if(newEx !== curEx){
+    curEx = newEx;
+    if(['wave','schema','block','apps'].includes(curView)) renderView(curView);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CONSOLE RESIZE (drag handle on top edge)
+// ════════════════════════════════════════════════════════════════
+(function initConsoleResize(){
+  const panel  = document.getElementById('console-panel');
+  const handle = document.getElementById('console-resize-handle');
+  if(!panel || !handle) return;
+
+  // Restore last-used height for this tab session so it persists across
+  // example loads / re-renders but resets on a fresh page load.
+  try{
+    const saved = sessionStorage.getItem('verilogide_console_h');
+    if(saved) panel.style.height = saved + 'px';
+  }catch(e){}
+
+  let dragging = false, startY = 0, startH = 0;
+
+  function onPointerDown(e){
+    dragging = true;
+    startY = e.clientY;
+    startH = panel.getBoundingClientRect().height;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  }
+  function onPointerMove(e){
+    if(!dragging) return;
+    // Dragging UP (negative deltaY) should INCREASE console height.
+    const deltaY = e.clientY - startY;
+    let newH = startH - deltaY;
+    const minH = 60;
+    const maxH = window.innerHeight * 0.75;
+    newH = Math.max(minH, Math.min(maxH, newH));
+    panel.style.height = newH + 'px';
+  }
+  function onPointerUp(){
+    if(!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    try{
+      sessionStorage.setItem('verilogide_console_h', Math.round(panel.getBoundingClientRect().height));
+    }catch(e){}
+  }
+
+  handle.addEventListener('mousedown', onPointerDown);
+  window.addEventListener('mousemove', onPointerMove);
+  window.addEventListener('mouseup', onPointerUp);
+
+  // Touch support
+  handle.addEventListener('touchstart', e=>onPointerDown(e.touches[0]), {passive:false});
+  window.addEventListener('touchmove', e=>{ if(dragging){ onPointerMove(e.touches[0]); e.preventDefault(); } }, {passive:false});
+  window.addEventListener('touchend', onPointerUp);
+
+  // Double-click handle to reset to default height
+  handle.addEventListener('dblclick', ()=>{
+    panel.style.height = '165px';
+    try{ sessionStorage.setItem('verilogide_console_h', 165); }catch(e){}
+  });
+})();
+
+// ════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════
+files.design = EX.alu.d;
+files.tb     = EX.alu.t;
+checkBackend();
+setInterval(checkBackend, 7000);
+
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+require(['vs/editor/editor.main'], function(){
+
+  monaco.languages.register({ id: 'verilog' });
+
+  monaco.languages.setLanguageConfiguration('verilog', {
+    comments: { lineComment: '//', blockComment: ['/*','*/'] },
+    brackets: [['{','}'],['[',']'],['(',')']],
+    autoClosingPairs: [
+      {open:'{',close:'}'},{open:'[',close:']'},{open:'(',close:')'},
+      {open:'"',close:'"'}
+    ],
+    surroundingPairs: [
+      {open:'{',close:'}'},{open:'[',close:']'},{open:'(',close:')'},{open:'"',close:'"'}
+    ],
+  });
+
+  const VLOG_KEYWORDS = [
+    'always','and','assign','automatic','begin','buf','bufif0','bufif1','case','casex','casez',
+    'cmos','deassign','default','defparam','disable','edge','else','end','endcase','endfunction',
+    'endmodule','endprimitive','endspecify','endtable','endtask','event','for','force','forever',
+    'fork','join','function','highz0','highz1','if','ifnone','initial','inout','input','integer',
+    'localparam','macromodule','module','nand','negedge','nmos','nor','not','notif0','notif1',
+    'or','output','parameter','pmos','posedge','primitive','pull0','pull1','pulldown','pullup',
+    'rcmos','real','realtime','reg','release','repeat','rnmos','rpmos','rtran','rtranif0',
+    'rtranif1','scalared','signed','small','specify','specparam','strong0','strong1','supply0',
+    'supply1','table','task','time','tran','tranif0','tranif1','tri','tri0','tri1','triand',
+    'trior','trireg','unsigned','vectored','wait','wand','weak0','weak1','while','wire','wor',
+    'xnor','xor',
+    'always_comb','always_ff','always_latch','alias','assert','assume','before','bind','bins',
+    'binsof','bit','break','byte','chandle','class','clocking','const','constraint','context',
+    'continue','cover','covergroup','coverpoint','cross','dist','do','endclass','endclocking',
+    'endgroup','endinterface','endpackage','endprogram','endproperty','endsequence','enum',
+    'expect','export','extends','extern','final','first_match','foreach','forkjoin','generate',
+    'endgenerate','genvar','iff','ignore_bins','illegal_bins','import','inside','int','interface',
+    'intersect','join_any','join_none','local','logic','longint','matches','modport','new','null',
+    'package','packed','priority','program','property','protected','pure','rand','randc',
+    'randcase','randsequence','ref','return','sequence','shortint','shortreal','solve','static',
+    'string','struct','super','tagged','this','throughout','timeprecision','timeunit','type',
+    'typedef','union','unique','unique0','var','virtual','void','wait_order','wildcard','with',
+    'within','logic'
+  ];
+
+  monaco.languages.setMonarchTokensProvider('verilog', {
+    defaultToken: '',
+    tokenPostfix: '.v',
+    keywords: VLOG_KEYWORDS,
+    operators: [
+      '=','<=','>=','==','!=','===','!==','&&','||','!','&','|','^','~','^~','~^',
+      '<<','>>','<<<','>>>','+','-','*','/','%','**','?',':','->','<->'
+    ],
+    symbols: /[=><!~?:&|+\-*\/\^%]+/,
+    tokenizer: {
+      root: [
+        [/\$[a-zA-Z_][\w$]*/, 'predefined'],
+        [/`[a-zA-Z_][\w]*/, 'keyword.directive'],
+        [/[a-zA-Z_][\w$]*/, {
+          cases: { '@keywords': 'keyword', '@default': 'identifier' }
+        }],
+        [/\d+'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_]+/, 'number.hex'],
+        [/\d+\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+        [/\d+/, 'number'],
+        [/"([^"\\]|\\.)*"/, 'string'],
+        { include: '@whitespace' },
+        [/[{}()\[\]]/, '@brackets'],
+        [/[;,.]/, 'delimiter'],
+        [/@symbols/, {
+          cases: { '@operators': 'operator', '@default': '' }
+        }],
+      ],
+      whitespace: [
+        [/[ \t\r\n]+/, 'white'],
+        [/\/\*/, 'comment', '@comment'],
+        [/\/\/.*$/, 'comment'],
+      ],
+      comment: [
+        [/[^\/*]+/, 'comment'],
+        [/\*\//, 'comment', '@pop'],
+        [/[\/*]/, 'comment'],
+      ],
+    },
+  });
+
+  designModel = monaco.editor.createModel(files.design, 'verilog');
+  tbModel     = monaco.editor.createModel(files.tb,     'verilog');
+
+  editor = monaco.editor.create(document.getElementById('monaco-container'), {
+    model: designModel,
+    theme: 'vs-dark',
+    fontFamily: "'Courier New', monospace",
+    fontSize: 12,
+    lineHeight: 20,
+    minimap: { enabled: false },
+    automaticLayout: true,
+    scrollBeyondLastLine: false,
+    renderLineHighlight: 'all',
+    tabSize: 2,
+    insertSpaces: true,
+    wordWrap: 'off',
+    folding: true,
+    glyphMargin: false,
+    lineNumbersMinChars: 3,
+    occurrencesHighlight: false,
+    renderWhitespace: 'none',
+    scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+  });
+
+  monaco.editor.defineTheme('verilog-dark', {
+    base: 'vs-dark', inherit: true,
+    rules: [
+      { token: 'keyword',           foreground: 'ff7b72' },
+      { token: 'keyword.directive', foreground: 'ffa657' },
+      { token: 'predefined',        foreground: 'd2a8ff' },
+      { token: 'number',            foreground: 'f2cc60' },
+      { token: 'number.hex',        foreground: 'f2cc60' },
+      { token: 'number.float',      foreground: 'f2cc60' },
+      { token: 'string',            foreground: 'a5d6ff' },
+      { token: 'comment',           foreground: '8b949e', fontStyle: 'italic' },
+      { token: 'identifier',        foreground: 'e6edf3' },
+      { token: 'operator',          foreground: '79c0ff' },
+    ],
+    colors: {
+      'editor.background': '#0d1117',
+      'editor.lineHighlightBackground': '#161b22',
+      'editorLineNumber.foreground': '#484f58',
+      'editorLineNumber.activeForeground': '#8b949e',
+      'editorCursor.foreground': '#58a6ff',
+      'editor.selectionBackground': '#21262d',
+    }
+  });
+  monaco.editor.setTheme('verilog-dark');
+
+  editor.onDidChangeModelContent(()=>onEdit());
+  editor.onDidChangeCursorPosition(()=>updatePos());
+
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, ()=>runCompile());
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyG,  ()=>generateTB());
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,  ()=>showSaveModal());
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, ()=>runSimulate());
+
+  window._splitDesignEditor = null;
+  window._splitTbEditor     = null;
+
+  monacoReady = true;
+  document.getElementById('monaco-loading').style.display='none';
+
+  updatePos(); updateCharCount();
+  loadEx('alu');
+  setTimeout(()=>renderView('wave'), 80);
+});
+
+// ════════════════════════════════════════════════════════════════
+//  BACKEND PING
+// ════════════════════════════════════════════════════════════════
+async function checkBackend(retries=2){
+  for(let attempt=0; attempt<=retries; attempt++){
+    try{
+      const r = await fetch(API+'/health', {signal:AbortSignal.timeout(8000)});
+      const d = await r.json();
+      backendLive = true;
+      const pill = document.getElementById('be-pill');
+      const ver  = (d.iverilog_version||'').match(/[\d.]+/)?.[0] || 'live';
+      pill.className='live';
+      pill.textContent=`● iverilog ${ver}${d.ai_available?' + AI':''}`;
+      return;
+    }catch(err){
+      if(attempt < retries){
+        await new Promise(res=>setTimeout(res, 2000));
+        continue;
+      }
+      backendLive=false;
+      const pill=document.getElementById('be-pill');
+      pill.className='dead'; pill.textContent='● backend offline';
+    }
+  }
+}
+
+// Fresh one-shot probe used before every AI/Synth call
+// so a stale backendLive=false never blocks requests
+async function pingBackend(){
+  try{
+    const r = await fetch(API+'/health', {signal:AbortSignal.timeout(8000)});
+    if(r.ok){ backendLive=true; return true; }
+  }catch{}
+  backendLive=false; return false;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  EDITOR HELPERS
+// ════════════════════════════════════════════════════════════════
+function onEdit(){
+  if(!monacoReady) return;
+  files[curTab==='design'?'design':'tb'] = editor.getValue();
+  document.getElementById(curTab==='design'?'dot-design':'dot-tb').className='sb-dot mod';
+  updateCharCount();
+  if(curTab==='design'){
+    clearTimeout(_detectTimer);
+    _detectTimer = setTimeout(detectCurEx, 400);
+  }
+}
+
+function updatePos(){
+  if(!monacoReady) return;
+  const p = editor.getPosition();
+  if(p) document.getElementById('lc').textContent = `Ln ${p.lineNumber}, Col ${p.column}`;
+}
+function updateCharCount(){
+  if(!monacoReady) return;
+  document.getElementById('char-count').textContent = editor.getValue().length+' chars';
+}
+
+function switchTab(t){
+  curTab=t;
+  ['design','tb'].forEach(x=>{
+    document.getElementById('etab-'+x).className='etab'+(x===t?' active':'');
+    document.getElementById('fi-'+x).className='sb-item'+(x===t?' active':'');
+  });
+  document.getElementById('ed-fname').textContent=t==='design'?'design.v':'testbench.v';
+  if(monacoReady && !splitMode){
+    editor.setModel(t==='design'?designModel:tbModel);
+    editor.focus();
+  }
+  updatePos(); updateCharCount();
+}
+
+function loadEx(n){
+  curEx=n;
+  files.design=EX[n].d; files.tb=EX[n].t;
+  if(monacoReady){
+    designModel.setValue(files.design);
+    tbModel.setValue(files.tb);
+    monaco.editor.setModelMarkers(designModel, 'iverilog', []);
+    monaco.editor.setModelMarkers(tbModel, 'iverilog', []);
+  }
+  updatePos(); updateCharCount();
+  document.getElementById('dot-design').className='sb-dot';
+  document.getElementById('dot-tb').className='sb-dot';
+  document.getElementById('err-badge').style.display='none';
+  log(`Loaded example: ${n}`,'info');
+  renderView(curView);
+  updateAnalysisPanel(files.design);
+}
+
+function onLangChange(){
+  const lv=document.getElementById('lang').value;
+  const label = lv==='systemverilog'?'SystemVerilog':'Verilog HDL';
+  document.getElementById('lang-badge').textContent=label;
+  const lbl = document.getElementById('lang-badge-l');
+  if(lbl) lbl.textContent=label;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CONSOLE
+// ════════════════════════════════════════════════════════════════
+function log(msg, cls='muted'){
+  const d=document.createElement('div');
+  d.className='c-'+cls; d.textContent=msg;
+  cout.appendChild(d); cout.scrollTop=cout.scrollHeight;
+}
+function logLink(msg, cls, onclick){
+  const d=document.createElement('div');
+  d.className='c-'+cls+' err-line'; d.textContent=msg;
+  d.onclick=onclick;
+  cout.appendChild(d); cout.scrollTop=cout.scrollHeight;
+}
+function clrConsole(){ cout.innerHTML=''; setBadge('idle',''); }
+function copyConsole(){
+  navigator.clipboard?.writeText(cout.innerText);
+  log('Console copied to clipboard','info');
+}
+
+function setBadge(state, text){
+  const b=document.getElementById('cbadge');
+  const states={ok:'ok',err:'err',warn:'warn',idle:''};
+  b.className='badge '+(states[state]||'');
+  b.textContent=text||state;
+}
+function setStat(s,t){
+  document.getElementById('sdot').className='sdot '+s;
+  const st=document.getElementById('stext');
+  st.textContent=t;
+  st.style.color=s==='ok'?'var(--green)':s==='err'?'var(--red)':s==='run'?'var(--yellow)':'var(--fg2)';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  COMPILE
+// ════════════════════════════════════════════════════════════════
+async function runCompile(){
+  clrConsole(); setStat('run','Compiling…');
+  clearTimeout(_detectTimer);
+  detectCurEx();
+  const lang=document.getElementById('lang').value;
+  log(`> Compile [${lang}] — `+(backendLive?'Icarus Verilog 12':'browser check'),'info');
+
+  if(backendLive){
+    try{
+      const r=await fetch(API+'/compile',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({design:files.design,testbench:files.tb,language:lang})});
+      const d=await r.json();
+      handleCompileResult(d);
+      if(d.ports) { lastPorts=d.ports; updateAnalysisPanel(files.design); }
+    }catch(e){ log('Network error: '+e.message,'err'); setStat('err','Failed'); }
+  } else {
+    browserCheck(files.design,'design.v');
+    if(files.tb) browserCheck(files.tb,'testbench.v');
+    log('[!] Backend offline — basic checks only','warn');
+    setStat('warn','Offline check');
+  }
+}
+
+function handleCompileResult(d){
+  const errs  = d.errors?.filter(e=>e.severity==='error')   || [];
+  const warns = d.errors?.filter(e=>e.severity==='warning')  || [];
+  const notes = d.errors?.filter(e=>e.severity==='note')     || [];
+
+  if(d.success){
+    log('[✓] Compile OK — Icarus Verilog reports no errors','ok');
+    if(d.ports){
+      const p=d.ports;
+      log(`    module: ${p.module}  inputs: [${p.inputs.join(', ')||'—'}]  outputs: [${p.outputs.join(', ')||'—'}]`,'muted');
+    }
+  }
+  errs.forEach(e=>logLink(
+    `  ${e.file}:${e.line}: error: ${e.message}`, 'err',
+    ()=>jumpToLine(e.file, e.line)
+  ));
+  warns.forEach(w=>logLink(
+    `  ${w.file}:${w.line}: warning: ${w.message}`, 'warn',
+    ()=>jumpToLine(w.file, w.line)
+  ));
+  notes.forEach(n=>log(`  ${n.file}:${n.line}: note: ${n.message}`,'muted'));
+
+  if(monacoReady){
+    const sevMap = {
+      error:   monaco.MarkerSeverity.Error,
+      warning: monaco.MarkerSeverity.Warning,
+      note:    monaco.MarkerSeverity.Info,
+    };
+    const toMarkers = file => (d.errors||[])
+      .filter(e=>e.file===file && e.line>0)
+      .map(e=>({
+        startLineNumber: e.line, endLineNumber: e.line,
+        startColumn: 1, endColumn: 1000,
+        message: `${e.severity}: ${e.message}`,
+        severity: sevMap[e.severity] || monaco.MarkerSeverity.Warning,
+      }));
+    monaco.editor.setModelMarkers(designModel, 'iverilog', toMarkers('design.v'));
+    monaco.editor.setModelMarkers(tbModel,     'iverilog', toMarkers('testbench.v'));
+  }
+
+  const dot = curTab==='design'
+    ? document.getElementById('dot-design')
+    : document.getElementById('dot-tb');
+
+  if(errs.length>0){
+    setBadge('err', errs.length+' error'+(errs.length>1?'s':''));
+    setStat('err','Errors found');
+    document.getElementById('err-badge').textContent=errs.length+' error'+(errs.length>1?'s':'');
+    document.getElementById('err-badge').className='badge err';
+    document.getElementById('err-badge').style.display='';
+    dot.className='sb-dot err';
+  } else {
+    if(warns.length>0){ setBadge('warn',warns.length+' warning'+(warns.length>1?'s':'')); setStat('warn','Warnings'); }
+    else { setBadge('ok','No errors'); setStat('ok','Compiled OK'); }
+    document.getElementById('err-badge').style.display='none';
+    dot.className='sb-dot';
+  }
+}
+
+function jumpToLine(file, line){
+  if(file==='testbench.v' && curTab!=='tb') switchTab('tb');
+  else if(file==='design.v' && curTab!=='design') switchTab('design');
+  if(!monacoReady || line<1) return;
+  editor.revealLineInCenter(line);
+  editor.setPosition({lineNumber: line, column: 1});
+  editor.focus();
+  updatePos();
+}
+
+function browserCheck(code, label){
+  const mods=  (code.match(/\bmodule\b/g)||[]).length;
+  const emods= (code.match(/\bendmodule\b/g)||[]).length;
+  if(mods!==emods) log(`  ${label}: error: module/endmodule mismatch (${mods} vs ${emods})`,'err');
+  else             log(`  [✓] ${label}: module/endmodule balanced`,'ok');
+  const b=(code.match(/\bbegin\b/g)||[]).length;
+  const e=(code.match(/\bend\b/g)||[]).length;
+  if(Math.abs(b-e)>1) log(`  ${label}: warning: begin/end imbalance (${b} begin, ${e} end)`,'warn');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SIMULATE
+// ════════════════════════════════════════════════════════════════
+async function runSimulate(){
+  if(!files.tb||files.tb.trim().length<10){
+    log('No testbench. Generate one first (✦ AI Testbench).','err'); return;
+  }
+  clrConsole(); setStat('run','Simulating…');
+  log('> Compile + vvp simulation starting…','info');
+  const lang=document.getElementById('lang').value;
+
+  if(!backendLive){
+    log('[✗] Backend required for simulation. Start: uvicorn server:app --port 8001','err');
+    setStat('err','Backend offline'); return;
+  }
+
+  try{
+    const r=await fetch(API+'/simulate',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({design:files.design,testbench:files.tb,language:lang})});
+    const d=await r.json();
+
+    if(d.errors?.length){
+      handleCompileResult(d);
+    }
+    if(d.success){
+      log('[✓] Simulation complete','ok');
+      if(d.sim_output){
+        log('— simulation output —','muted');
+        d.sim_output.split('\n').forEach(l=>{
+          if(l.includes('error')||l.includes('Error')) log('  '+l,'err');
+          else if(l.includes('warning')) log('  '+l,'warn');
+          else log('  '+l,'sim');
+        });
+      }
+      if(d.vcd){
+        lastVCD=d.vcd; lastPorts=d.ports;
+        log('> VCD dump received — click 📈 VCD tab to view waveform','info');
+        const vcdTab = document.getElementById('vtab-vcd');
+        if(vcdTab){ vcdTab.style.borderTopColor='var(--green)'; vcdTab.style.color='var(--green)'; }
+        switchView('vcd');
+      } else {
+        lastVCD=null; lastPorts=d.ports||null;
+        log('[!] No VCD produced — add $dumpfile/$dumpvars to your testbench','warn');
+      }
+      setBadge('ok','Sim OK'); setStat('ok','Sim complete');
+    } else {
+      lastVCD=null; lastPorts=null;
+      setBadge('err','Sim failed'); setStat('err','Sim failed');
+    }
+  }catch(e){ log('Sim error: '+e.message,'err'); setStat('err','Error'); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  YOSYS SYNTHESIS
+// ════════════════════════════════════════════════════════════════
+let lastNetlist = null, lastSynthStats = null, lastSynthLog = '', lastSynthTop = null;
+
+async function runSynthesize(){
+  if(!files.design || files.design.trim().length<5){
+    log('[!] Nothing to synthesize — write a design first','warn'); return;
+  }
+  clrConsole(); setStat('run','Synthesizing…');
+  log('🔩 Running Yosys synthesis…','info');
+
+  if(!backendLive){
+    log('[✗] Backend required for synthesis. Start: uvicorn server:app --port 8001','err');
+    setStat('err','Backend offline'); return;
+  }
+
+  try{
+    const r = await fetch(API+'/synthesize',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({design:files.design})});
+
+    if(r.status===503){
+      const err = await r.json().catch(()=>({detail:'Yosys not available'}));
+      log('[✗] '+err.detail,'err'); setStat('err','Yosys unavailable'); return;
+    }
+
+    const d = await r.json();
+    lastSynthLog = d.log || '';
+
+    if(d.errors?.length){
+      d.errors.forEach(e=>log(`  ${e.file}: ${e.severity}: ${e.message}`,'err'));
+    }
+
+    if(d.success){
+      lastNetlist = d.netlist; lastSynthStats = d.stats; lastSynthTop = d.top;
+      log(`[✓] Synthesis complete — top module: ${d.top}`,'ok');
+      if(d.stats){
+        log(`> ${d.stats.total_cells} cells, ${d.stats.wires} wires (${d.stats.wire_bits} bits)`,'info');
+      }
+      log('> Click 🔩 Netlist tab to view the gate-level netlist','info');
+      const netTab = document.getElementById('vtab-netlist');
+      if(netTab){ netTab.style.borderTopColor='var(--green)'; netTab.style.color='var(--green)'; }
+      setBadge('ok','Synth OK'); setStat('ok','Synthesis complete');
+      switchView('netlist');
+    } else {
+      lastNetlist = null; lastSynthStats = null;
+      setBadge('err','Synth failed'); setStat('err','Synthesis failed');
+      if(lastSynthLog) log('— yosys log (tail) —','muted');
+      lastSynthLog.split('\n').slice(-15).forEach(l=>{ if(l.trim()) log('  '+l,'sim'); });
+    }
+  }catch(e){ log('Synthesis error: '+e.message,'err'); setStat('err','Error'); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  AI TESTBENCH
+// ════════════════════════════════════════════════════════════════
+async function generateTB(){
+  clrConsole(); setStat('run','Generating…');
+  log('✦ Requesting AI testbench…','ai');
+  const lang=document.getElementById('lang').value;
+
+  if(backendLive){
+    try{
+      const r=await fetch(API+'/generate-testbench',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({design:files.design,language:lang})});
+      const d=await r.json();
+      if(d.success){
+        setCode('tb', d.testbench);
+        document.getElementById('dot-tb').className='sb-dot';
+        log(`✦ Testbench generated [${d.source}]`,'ai');
+        log('> Review in testbench.v tab, then click Simulate','info');
+        setStat('ok','TB ready');
+      }
+    }catch(e){
+      log('Backend error: '+e.message+' — using template','warn');
+      localTB();
+    }
+  } else {
+    localTB();
+  }
+}
+
+function localTB(){
+  const p=extractPortsLocal(files.design);
+  const mod=p.module, ins=p.inputs, outs=p.outputs;
+  const widths = p.widths || {};
+
+  const clkName = ins.find(s=>/^(clk|clock)$/i.test(s));
+  const rstName = ins.find(s=>/^(rst|reset|n_rst|rst_n|nreset)$/i.test(s));
+  const activeLowRst = rstName && /^(rst_n|n_rst|nreset)$/i.test(rstName);
+  const driveIns = ins.filter(s=>s!==clkName && s!==rstName);
+  const totalDriveWidth = driveIns.reduce((sum,s)=>sum+(widths[s]||1),0);
+
+  const decl = (name,w) => w>1 ? `  reg  [${w-1}:0] ${name};` : `  reg  ${name};`;
+  const declWire = (name,w) => w>1 ? `  wire [${w-1}:0] ${name};` : `  wire ${name};`;
+
+  const L=["`timescale 1ns/1ps",`module tb_${mod};`,''];
+  ins.forEach(s=>L.push(decl(s, widths[s]||1)));
+  outs.forEach(s=>L.push(declWire(s, widths[s]||1)));
+  L.push('',`  ${mod} uut (`);
+  L.push([...ins,...outs].map(s=>`    .${s}(${s})`).join(',\n'));
+  L.push('  );','');
+
+  if(clkName){
+    L.push(`  initial ${clkName}=0;`,`  always #5 ${clkName}=~${clkName};`,'');
+  }
+
+  L.push('  initial begin',`    $dumpfile("${mod}.vcd");`,`    $dumpvars(0,tb_${mod});`);
+  if(ins.length||outs.length){
+    const monFmt = [...ins,...outs].map(s=>`${s}=%b`).join(' ');
+    const monArgs = [...ins,...outs].join(', ');
+    L.push(`    $monitor("%0t ${monFmt}", $time, ${monArgs});`);
+  }
+
+  driveIns.forEach(s=>L.push(`    ${s} = 0;`));
+
+  if(rstName){
+    const activeVal = activeLowRst ? '0' : '1';
+    const releaseVal = activeLowRst ? '1' : '0';
+    L.push(`    ${rstName}=${activeVal}; #20; ${rstName}=${releaseVal};`);
+  }
+
+  if(clkName){
+    if(driveIns.length){
+      L.push('    // Drive inputs across clock edges');
+      L.push('    repeat (16) begin');
+      L.push(`      @(negedge ${clkName});`);
+      driveIns.forEach(s=>L.push(`      ${s} = $random;`));
+      L.push('    end');
+      L.push(`    @(negedge ${clkName});`);
+    } else {
+      L.push('    #160;');
+    }
+  } else {
+    if(totalDriveWidth===0){
+      L.push('    #50;');
+    } else if(totalDriveWidth<=20){
+      const total = Math.pow(2, totalDriveWidth);
+      L.push(`    // Exhaustive test — all ${total} input combinations (${totalDriveWidth} total bits)`);
+      L.push(`    for (integer _i = 0; _i < ${total}; _i = _i + 1) begin`);
+      L.push(`      {${driveIns.join(', ')}} = _i;`);
+      L.push('      #10;');
+      L.push('    end');
+    } else {
+      L.push('    // Randomised test vectors (too many input bits to enumerate exhaustively)');
+      L.push('    repeat (32) begin');
+      driveIns.forEach(s=>L.push(`      ${s} = $random;`));
+      L.push('      #10;');
+      L.push('    end');
+    }
+  }
+
+  L.push('    $finish;','  end','endmodule');
+  setCode('tb', L.join('\n'));
+  document.getElementById('dot-tb').className='sb-dot';
+  log('✦ Template testbench generated (backend offline) — real test vectors included','warn');
+  setStat('ok','TB (template)');
+}
+
+function _stripVerilogComments(code){
+  // Strip // line comments and /* */ block comments before parsing ports.
+  // AI-generated Verilog very commonly adds trailing "// explanation"
+  // comments after each port declaration, which breaks the port-list
+  // lookahead regex below if left in. Block comments are blanked out
+  // char-by-char (preserving newlines) so nothing downstream that relies
+  // on line numbers gets shifted.
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\/.*$/gm, '');
+}
+
+function extractPortsLocal(code){
+  code = _stripVerilogComments(code);
+  const SKIP = new Set([
+    'wire','reg','tri','supply0','supply1','wand','wor',
+    'input','output','inout','integer','real','time',
+    'signed','unsigned','parameter','localparam',
+    'begin','end','always','initial','assign',
+    'module','endmodule','case','endcase','if','else','for'
+  ]);
+  const mm=code.match(/\bmodule\s+(\w+)/);
+  const ins=[],outs=[],widths={};
+
+  function add(direction, name, width){
+    name=name.trim();
+    if(!/^[A-Za-z_]\w*$/.test(name)) return;
+    if(SKIP.has(name)) return;
+    const lst = direction==='input' ? ins : outs;
+    if(!lst.includes(name)){ lst.push(name); widths[name]=width; }
+  }
+
+  const portRe = /\b(input|output|inout)\b(?:\s+(?:wire|reg|tri))?(?:\s*\[\s*(\d+)\s*:\s*(\d+)\s*\])?\s+((?:\w+\s*,\s*)*\w+)(?=\s*[;)]\s*|\s*,?\s*(?:input|output|inout)\b|\s*\n)/g;
+
+  for(const m of code.matchAll(portRe)){
+    const direction = m[1];
+    const msb = m[2], lsb = m[3];
+    const width = (msb!==undefined && lsb!==undefined) ? (parseInt(msb)-parseInt(lsb)+1) : 1;
+    for(const name of m[4].split(',')) add(direction, name, width);
+  }
+
+  return{module:mm?mm[1]:'design',inputs:ins,outputs:outs,widths};
+}
+
+// ════════════════════════════════════════════════════════════════
+//  AI DESIGN GENERATOR
+// ════════════════════════════════════════════════════════════════
+let _aiDesignResult = null;
+
+function showAIDesignModal(){
+  document.getElementById('ai-design-modal').style.display='flex';
+  document.getElementById('ai-design-name').focus();
+}
+function closeAIDesignModal(){
+  document.getElementById('ai-design-modal').style.display='none';
+}
+
+async function doGenerateDesign(){
+  const name = document.getElementById('ai-design-name').value.trim();
+  const spec = document.getElementById('ai-design-spec').value.trim();
+  if(!name){
+    log('[!] Enter a design name first, e.g. design "8-bit ripple carry adder"','warn');
+    return;
+  }
+  const lang = document.getElementById('lang').value;
+  const goBtn = document.getElementById('ai-design-go-btn');
+  goBtn.disabled = true; goBtn.textContent = '⏳ Generating…';
+  clrConsole(); setStat('run','Generating design…');
+  log(`✦ Requesting AI design: "${name}"${spec ? ' ['+spec.slice(0,60)+(spec.length>60?'…':'')+']' : ''}`,'ai');
+
+  // Always do a live ping — don't trust potentially stale backendLive flag
+  const alive = await pingBackend();
+  if(!alive){
+    log('[✗] Backend offline — start: uvicorn server:app --port 8001','err');
+    setStat('err','Backend offline');
+    goBtn.disabled = false; goBtn.textContent = '✦ Generate';
+    return;
+  }
+
+  try{
+    const r = await fetch(API+'/generate-design',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name, spec: spec || null, language: lang})});
+    if(!r.ok){
+      const err = await r.json().catch(()=>({detail:r.statusText}));
+      throw new Error(err.detail || r.statusText);
+    }
+    const d = await r.json();
+    _aiDesignResult = {code: d.design, source: d.source};
+    closeAIDesignModal();
+    document.getElementById('ai-design-preview-code').value = d.design;
+    document.getElementById('ai-design-source-badge').textContent = d.source;
+    document.getElementById('ai-design-preview-modal').style.display='flex';
+    log(`✦ Design generated [${d.source}]`,'ai');
+    log('> Review the code, then click "Insert into design.v"','info');
+    setStat('ok','Design ready');
+  }catch(e){
+    log('AI design error: '+e.message,'err');
+    setStat('err','Error');
+  }finally{
+    goBtn.disabled = false; goBtn.textContent = '✦ Generate';
+  }
+}
+
+function closeAIDesignPreview(){
+  document.getElementById('ai-design-preview-modal').style.display='none';
+  _aiDesignResult = null;
+}
+
+// ══════════════════════════════════════════════════════
+//  FIX: insertAIDesign now refreshes views immediately
+// ══════════════════════════════════════════════════════
+function insertAIDesign(){
+  const code = document.getElementById('ai-design-preview-code').value;
+  if(!code || !code.trim()){
+    log('[!] Nothing to insert','warn'); return;
+  }
+  setCode('design', code);
+  document.getElementById('dot-design').className='sb-dot mod';
+  switchTab('design');
+  document.getElementById('ai-design-preview-modal').style.display='none';
+  log('> AI design inserted into design.v','ok');
+  setStat('ok','Design inserted');
+  _aiDesignResult = null;
+  // Clear the prompt fields for next use
+  document.getElementById('ai-design-name').value='';
+  document.getElementById('ai-design-spec').value='';
+  // ── NEW: refresh sidebar + all right-panel views immediately ──
+  updateAnalysisPanel(code);   // sidebar analysis (module name, port counts, etc.)
+  curEx = 'custom';            // force custom so detectCurEx triggers a re-render
+  detectCurEx();               // re-detect module name → sets curEx, rerenders if changed
+  renderView(curView);         // redraw whichever right-panel tab is currently active
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FORMAT
+// ════════════════════════════════════════════════════════════════
+async function formatCode(){
+  if(!monacoReady) return;
+  const lang=document.getElementById('lang').value;
+  setStat('run','Formatting…');
+  if(backendLive){
+    try{
+      const r=await fetch(API+'/format',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({code:editor.getValue(),language:lang})});
+      const d=await r.json();
+      setCode(curTab, d.code);
+      log('> Code formatted','ok'); setStat('ok','Formatted');
+    }catch(e){ log('Format error: '+e,'err'); }
+  } else {
+    log('[!] Backend offline — format not available','warn'); setStat('warn','Offline');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SAVE / LOAD
+// ════════════════════════════════════════════════════════════════
+function showSaveModal(){ document.getElementById('save-modal').style.display='flex'; }
+function closeSaveModal(){ document.getElementById('save-modal').style.display='none'; }
+
+function doSave(){
+  const which=document.getElementById('save-which').value;
+  const name=document.getElementById('save-name').value||'design';
+  if(which==='both'){
+    saveBlob(files.design, name+'_design.v');
+    saveBlob(files.tb, name+'_testbench.v');
+  } else {
+    saveBlob(which==='design'?files.design:files.tb, name+'.v');
+  }
+  closeSaveModal();
+  log(`> Saved ${which}`,'ok');
+}
+
+function saveBlob(text, filename){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download=filename; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function triggerLoad(){ document.getElementById('file-input').click(); }
+
+function loadFile(e){
+  const f=e.target.files[0];
+  if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const code=ev.target.result;
+    if(f.name.includes('tb')||f.name.includes('test')){
+      setCode('tb', code);
+      log(`Loaded ${f.name} as testbench`,'info');
+    } else {
+      setCode('design', code);
+      log(`Loaded ${f.name} as design`,'info');
+    }
+  };
+  reader.readAsText(f);
+  e.target.value='';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  ANALYSIS PANEL (sidebar)
+// ════════════════════════════════════════════════════════════════
+function updateAnalysisPanel(code){
+  const p=extractPortsLocal(code);
+  const has_clk=/\bclk\b|\bclock\b/.test(code);
+  const is_seq=/posedge|negedge/.test(code);
+  const panel=document.getElementById('analysis-panel');
+  panel.innerHTML=[
+    `<div style="color:var(--cyan)">${p.module}</div>`,
+    `<div>↳ ${p.inputs.length} in, ${p.outputs.length} out</div>`,
+    `<div>${is_seq?'Sequential':'Combinational'}</div>`,
+    has_clk?'<div>Has clock</div>':'',
+    `<div style="margin-top:4px;color:var(--fg3)">${code.split('\n').length} lines</div>`
+  ].join('');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  VIEW ROUTER
+// ════════════════════════════════════════════════════════════════
+function switchView(v){
+  curView=v;
+  ['wave','schema','block','vcd','netlist','apps'].forEach(x=>{
+    const el=document.getElementById('vtab-'+x);
+    if(el){
+      el.className='vtab'+(x===v?' active':'');
+      el.style.borderTopColor='';
+      el.style.color='';
+    }
+  });
+  renderView(v);
+}
+
+function applyFitClass(){
+  const vc = document.getElementById('vcont');
+  if(!vc) return;
+  // "apps" view is text/card content, not a diagram — fit mode doesn't apply there
+  const applies = fitModeOn && curView !== 'apps';
+  vc.classList.toggle('fit-mode', applies);
+  vc.style.setProperty('--fit-scale', fitZoomPct/100);
+  const btn = document.getElementById('fit-btn');
+  if(btn) btn.classList.toggle('active', applies);
+  const zb = document.getElementById('zoom-bar');
+  if(zb) zb.style.display = applies ? 'flex' : 'none';
+  syncZoomUI();
+}
+
+function toggleFitMode(){
+  fitModeOn = !fitModeOn;
+  applyFitClass();
+  renderView(curView);
+}
+
+// ── Right-panel zoom slider (scales the fit-mode diagram down from 100%) ──
+let fitZoomPct = 100;
+try{ const saved = sessionStorage.getItem('verilogide_fit_zoom'); if(saved) fitZoomPct = parseInt(saved, 10); }catch(e){}
+
+function onZoomSlider(val){
+  fitZoomPct = parseInt(val, 10);
+  document.getElementById('vcont').style.setProperty('--fit-scale', fitZoomPct/100);
+  const pctEl = document.getElementById('zoom-pct');
+  if(pctEl) pctEl.textContent = fitZoomPct + '%';
+  try{ sessionStorage.setItem('verilogide_fit_zoom', fitZoomPct); }catch(e){}
+}
+function resetZoom(){
+  fitZoomPct = 100;
+  const slider = document.getElementById('zoom-slider');
+  if(slider) slider.value = 100;
+  onZoomSlider(100);
+}
+function syncZoomUI(){
+  const slider = document.getElementById('zoom-slider');
+  const pctEl  = document.getElementById('zoom-pct');
+  if(slider) slider.value = fitZoomPct;
+  if(pctEl) pctEl.textContent = fitZoomPct + '%';
+}
+
+function applyFsFitClass(){
+  const fb = document.getElementById('fs-body');
+  if(!fb) return;
+  const applies = fsFitModeOn && curView !== 'apps';
+  fb.classList.toggle('fit-mode', applies);
+  fb.style.setProperty('--fit-scale', fsFitZoomPct/100);
+  const btn = document.getElementById('fs-fit-btn');
+  if(btn) btn.classList.toggle('active', applies);
+  const zb = document.getElementById('fs-zoom-bar');
+  if(zb) zb.style.display = applies ? 'flex' : 'none';
+  syncFsZoomUI();
+}
+
+function toggleFsFitMode(){
+  fsFitModeOn = !fsFitModeOn;
+  applyFsFitClass();
+  // Rebuild fullscreen content fresh so SVGs regenerate with the right preserveAspectRatio
+  openFullscreen();
+}
+
+// ── Fullscreen zoom slider (independent of the right-panel one) ──
+let fsFitZoomPct = 40; // default to 40% — diagrams looked oversized at 100% in fullscreen
+try{ const saved = sessionStorage.getItem('verilogide_fs_zoom'); if(saved) fsFitZoomPct = parseInt(saved, 10); }catch(e){}
+
+function onFsZoomSlider(val){
+  fsFitZoomPct = parseInt(val, 10);
+  document.getElementById('fs-body').style.setProperty('--fit-scale', fsFitZoomPct/100);
+  const pctEl = document.getElementById('fs-zoom-pct');
+  if(pctEl) pctEl.textContent = fsFitZoomPct + '%';
+  try{ sessionStorage.setItem('verilogide_fs_zoom', fsFitZoomPct); }catch(e){}
+}
+function resetFsZoom(){
+  fsFitZoomPct = 100;
+  const slider = document.getElementById('fs-zoom-slider');
+  if(slider) slider.value = 100;
+  onFsZoomSlider(100);
+}
+function syncFsZoomUI(){
+  const slider = document.getElementById('fs-zoom-slider');
+  const pctEl  = document.getElementById('fs-zoom-pct');
+  if(slider) slider.value = fsFitZoomPct;
+  if(pctEl) pctEl.textContent = fsFitZoomPct + '%';
+}
+
+function renderView(v){
+  if(v==='wave')   renderWave(curEx);
+  else if(v==='schema') renderSchema();
+  else if(v==='block')  renderBlock();
+  else if(v==='vcd')    renderVCDView();
+  else if(v==='netlist') renderNetlist();
+  else                  renderApps();
+  applyFitClass();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DEMO WAVEFORM
+// ════════════════════════════════════════════════════════════════
+const WCFG = {
+  alu:{sigs:[
+    {n:'clk',t:'clk',p:20},
+    {n:'A[3:0]',t:'bus',vs:['5','8','F','F','7','1','A'],p:50,c:'cyan'},
+    {n:'B[3:0]',t:'bus',vs:['3','3','A','A','0','F','5'],p:50,c:'cyan'},
+    {n:'op[2:0]',t:'bus',vs:['ADD','SUB','AND','OR ','NOT','ADD','XOR'],p:50,c:'yellow'},
+    {n:'result',t:'bus',vs:['8','5','A','F','8','0','F'],p:50,c:'orange'},
+    {n:'zero',t:'bit',vs:[0,0,0,0,0,1,0],p:50,c:'green'},
+    {n:'carry',t:'bit',vs:[0,0,0,0,0,0,0],p:50,c:'purple'},
+  ]},
+  counter:{sigs:[
+    {n:'clk',t:'clk',p:10},
+    {n:'rst',t:'bit',vs:[1,1,0,0,0,0,0,0],p:12,c:'red'},
+    {n:'count[3:0]',t:'cnt',max:16,c:'purple'},
+  ]},
+  mux:{sigs:[
+    {n:'d[3:0]',t:'bus',vs:['A','A','A','A','5','5','5','5'],p:40,c:'cyan'},
+    {n:'sel[1:0]',t:'bus',vs:['0','1','2','3','0','1','2','3'],p:40,c:'yellow'},
+    {n:'y',t:'bit',vs:[0,1,0,1,1,0,1,0],p:40,c:'green'},
+  ]},
+  ff:{sigs:[
+    {n:'clk',t:'clk',p:10},
+    {n:'rst_n',t:'bit',vs:[0,0,1,1,1,1,1],p:12,c:'red'},
+    {n:'d',t:'bit',vs:[0,1,1,0,0,1,0],p:20,c:'cyan'},
+    {n:'q',t:'bit',vs:[0,0,1,1,0,0,1],p:20,c:'green'},
+    {n:'q_n',t:'bit',vs:[1,1,0,0,1,1,0],p:20,c:'purple'},
+  ]},
+  fsm:{sigs:[
+    {n:'clk',t:'clk',p:10},
+    {n:'rst',t:'bit',vs:[1,0,0,0,0,0,0],p:12,c:'red'},
+    {n:'state[1:0]',t:'bus',vs:['RED','GRN','YEL','RED','GRN','YEL','RED'],p:20,c:'orange'},
+    {n:'red',t:'bit',vs:[1,0,0,1,0,0,1],p:20,c:'red'},
+    {n:'green',t:'bit',vs:[0,1,0,0,1,0,0],p:20,c:'green'},
+    {n:'yellow',t:'bit',vs:[0,0,1,0,0,1,0],p:20,c:'yellow'},
+  ]},
+  uart:{sigs:[
+    {n:'clk',t:'clk',p:10},
+    {n:'tx_start',t:'bit',vs:[0,1,0,0,0,0,1,0],p:20,c:'yellow'},
+    {n:'busy',t:'bit',vs:[0,0,1,1,1,0,0,1],p:20,c:'orange'},
+    {n:'tx',t:'bit',vs:[1,1,0,1,0,1,1,0],p:20,c:'green'},
+  ]},
+  fifo:{sigs:[
+    {n:'clk',t:'clk',p:10},
+    {n:'wr_en',t:'bit',vs:[0,1,1,1,0,0,0,0],p:20,c:'blue'},
+    {n:'rd_en',t:'bit',vs:[0,0,0,0,1,1,1,0],p:20,c:'cyan'},
+    {n:'full',t:'bit',vs:[0,0,0,1,1,0,0,0],p:20,c:'red'},
+    {n:'empty',t:'bit',vs:[1,1,0,0,0,0,0,1],p:20,c:'yellow'},
+  ]},
+};
+const COL={clk:'var(--blue)',green:'var(--green)',red:'var(--red)',yellow:'var(--yellow)',
+  purple:'var(--purple)',cyan:'var(--cyan)',orange:'var(--orange)',blue:'var(--blue)',white:'var(--fg1)'};
+
+function getWaveCfg(ex){
+  if(WCFG[ex]) return WCFG[ex];
+
+  const p = extractPortsLocal(files.design);
+  const sigs = [];
+  const cols = ['cyan','yellow','orange','purple','green','blue'];
+  let ci = 0;
+
+  const clkName = p.inputs.find(n=>/^(clk|clock)$/i.test(n));
+  const rstName = p.inputs.find(n=>/^(rst|reset|rst_n|n_rst|nreset)$/i.test(n));
+
+  if(clkName) sigs.push({n:clkName, t:'clk', p:10});
+  if(rstName) sigs.push({n:rstName, t:'bit', vs:[1,1,0,0,0,0,0,0], p:12, c:'red'});
+
+  p.inputs.filter(n=>n!==clkName && n!==rstName).forEach(n=>{
+    sigs.push({n, t:'bit', vs:[0,1,0,1,1,0,1,0], p:20, c:cols[ci++%cols.length]});
+  });
+  p.outputs.forEach(n=>{
+    sigs.push({n, t:'bit', vs:[0,0,1,0,1,1,0,1], p:20, c:cols[ci++%cols.length]});
+  });
+
+  if(sigs.length===0) sigs.push({n:'(no ports found)', t:'bit', vs:[0,0,0,0], p:50, c:'white'});
+  return {sigs, generic:true};
+}
+
+function renderWave(ex){
+  if(animId){cancelAnimationFrame(animId);animId=null;waveAnimOn=false;}
+  const cfg=getWaveCfg(ex);
+  const W=390,ROW=26,LBL=76,WAVE=W-LBL-6,H=cfg.sigs.length*ROW+30;
+  const vc=document.getElementById('vcont');
+  const badgeTxt = backendLive
+    ? 'Click ⚡ Simulate for real VCD'
+    : (cfg.generic ? 'Auto preview from your ports' : 'Demo waveform');
+  const par = fitModeOn ? 'none' : 'xMidYMid meet';
+  vc.innerHTML=`
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-shrink:0">
+    <span style="font-size:11px;color:var(--fg2)">Waveform Viewer</span>
+    <span class="badge ${backendLive?'ok':'info'}">${badgeTxt}</span>
+    <div style="flex:1"></div>
+    <button class="btn btn-default" style="padding:2px 8px;font-size:10px" id="wave-anim-btn" onclick="toggleWaveAnim()">⏵ Animate</button>
+  </div>
+  <div class="wave-wrap fit-stretch">
+    <svg id="wave-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}">${buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,0)}</svg>
+  </div>
+  <div style="margin-top:8px;font-size:10px;color:var(--fg3);flex-shrink:0">
+    ${cfg.generic
+      ? 'This is an auto-generated preview based on your design\'s input/output ports — actual signal values depend on your logic.'
+      : 'Tip: Run ⚡ Simulate to replace this with a real VCD waveform from Icarus Verilog.'}
+  </div>`;
+}
+
+function buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,off){
+  let s='';
+  s+=`<line x1="${LBL}" y1="20" x2="${W-4}" y2="20" stroke="var(--bg3)" stroke-width="0.5"/>`;
+  for(let i=0;i<=5;i++){
+    const x=LBL+i*(WAVE/5);
+    s+=`<line x1="${x}" y1="16" x2="${x}" y2="22" stroke="var(--bg3)" stroke-width="0.5"/>`;
+    s+=`<text x="${x}" y="13" font-size="9" fill="var(--fg3)" text-anchor="middle">${i*50}ns</text>`;
+  }
+  cfg.sigs.forEach((sig,i)=>{
+    const y=30+i*ROW,hi=y+2,lo=y+ROW-7,mid=y+ROW/2-1;
+    const col=COL[sig.c||'green']||'var(--green)';
+    s+=`<text x="${LBL-4}" y="${mid+3}" font-size="10" fill="var(--fg2)" text-anchor="end">${sig.n}</text>`;
+
+    if(sig.t==='clk'){
+      let px=LBL,st=0;
+      while(px<W-6){
+        const np=Math.min(px+(sig.p||10)/2,W-6);
+        s+=`<line x1="${px}" y1="${st?hi:lo}" x2="${np}" y2="${st?hi:lo}" stroke="${col}" stroke-width="1.2"/>`;
+        s+=`<line x1="${np}" y1="${hi}" x2="${np}" y2="${lo}" stroke="${col}" stroke-width="1.2"/>`;
+        px=np; st=1-st;
+      }
+    } else if(sig.t==='bit'){
+      const vs=sig.vs||[0,1];
+      const pw=WAVE/vs.length;
+      vs.forEach((v,j)=>{
+        const x=LBL+j*pw, nx=Math.min(x+pw,W-6);
+        const cy=v?hi:lo, ny=vs[(j+1)%vs.length]?hi:lo;
+        s+=`<line x1="${x}" y1="${cy}" x2="${nx}" y2="${cy}" stroke="${col}" stroke-width="1.5"/>`;
+        if(j<vs.length-1&&cy!==ny)
+          s+=`<line x1="${nx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${col}" stroke-width="1.5"/>`;
+      });
+    } else if(sig.t==='bus'){
+      const vs=sig.vs||['X'];
+      const pw=WAVE/vs.length;
+      vs.forEach((v,j)=>{
+        const x=LBL+j*pw, nx=Math.min(x+pw,W-6);
+        s+=`<polygon points="${x+3},${hi} ${nx-3},${hi} ${nx-3},${lo} ${x+3},${lo}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="1"/>`;
+        s+=`<text x="${(x+nx)/2}" y="${lo-1}" font-size="9" fill="${col}" text-anchor="middle">${v}</text>`;
+      });
+    } else if(sig.t==='cnt'){
+      const steps=Math.min(Math.floor(WAVE/7),16);
+      const pw=WAVE/steps;
+      for(let j=0;j<steps;j++){
+        const x=LBL+j*pw, nx=Math.min(x+pw,W-6);
+        const v=j%(sig.max||16), frac=v/(sig.max-1);
+        const cy=hi+(lo-hi)*(1-frac);
+        if(j>0){
+          const pv=(j-1)%(sig.max||16), pf=pv/(sig.max-1);
+          const pcy=hi+(lo-hi)*(1-pf);
+          s+=`<line x1="${x}" y1="${pcy}" x2="${x}" y2="${cy}" stroke="${col}" stroke-width="1"/>`;
+        }
+        s+=`<line x1="${x}" y1="${cy}" x2="${nx}" y2="${cy}" stroke="${col}" stroke-width="1.5"/>`;
+        if(j%2===0) s+=`<text x="${x+2}" y="${cy-2}" font-size="8" fill="${col}">${v}</text>`;
+      }
+    }
+  });
+  if(off>0){
+    const cx=LBL+(off%WAVE);
+    s+=`<line x1="${cx}" y1="18" x2="${cx}" y2="${H-4}" stroke="var(--yellow)" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.6"/>`;
+    s+=`<text x="${cx+2}" y="12" font-size="8" fill="var(--yellow)">${Math.floor(off*0.8)}ns</text>`;
+  }
+  return s;
+}
+
+function toggleWaveAnim(){
+  waveAnimOn=!waveAnimOn;
+  const btn=document.getElementById('wave-anim-btn');
+  if(btn) btn.textContent=waveAnimOn?'⏸ Pause':'⏵ Animate';
+  if(waveAnimOn){
+    const cfg=getWaveCfg(curEx);
+    const W=390,ROW=26,LBL=76,WAVE=W-LBL-6,H=cfg.sigs.length*ROW+30;
+    let off=0;
+    function step(){
+      const svg=document.getElementById('wave-svg');
+      if(!svg||!waveAnimOn){animId=null;return;}
+      off=(off+0.5)%WAVE;
+      svg.innerHTML=buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,off);
+      animId=requestAnimationFrame(step);
+    }
+    animId=requestAnimationFrame(step);
+  } else {
+    if(animId){cancelAnimationFrame(animId);animId=null;}
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  VCD VIEWER
+// ════════════════════════════════════════════════════════════════
+function renderVCDView(){
+  const vc=document.getElementById('vcont');
+  if(!lastVCD){
+    vc.innerHTML=`<div style="color:var(--fg2);font-size:12px;padding:20px 0;text-align:center">
+      No VCD data yet.<br><br>Click <strong>⚡ Simulate</strong> to run the testbench<br>and generate a real waveform.
+    </div>`;
+    return;
+  }
+  const {signals, timeUnit} = parseVCD(lastVCD);
+  const names=Object.keys(signals).slice(0,10);
+  if(!names.length){vc.innerHTML='<div class="c-warn">VCD parsed but no signals found.</div>';return;}
+
+  let maxT=0;
+  names.forEach(n=>{const v=signals[n];if(v.vals.length) maxT=Math.max(maxT,v.vals[v.vals.length-1].t);});
+  maxT=maxT||1;
+
+  const W=390,ROW=26,LBL=80,WAVE=W-LBL-6,H=names.length*ROW+32;
+  const par = fitModeOn ? 'none' : 'xMidYMid meet';
+  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px;display:block">`;
+  svg+=`<line x1="${LBL}" y1="20" x2="${W-4}" y2="20" stroke="var(--bg3)" stroke-width="0.5"/>`;
+  for(let i=0;i<=4;i++){
+    const x=LBL+i*(WAVE/4);
+    const t=Math.round(maxT*i/4);
+    svg+=`<text x="${x}" y="13" font-size="9" fill="var(--fg3)" text-anchor="middle">${t}${timeUnit}</text>`;
+    svg+=`<line x1="${x}" y1="16" x2="${x}" y2="22" stroke="var(--bg3)" stroke-width="0.5"/>`;
+  }
+
+  names.forEach((n,i)=>{
+    const sig=signals[n];
+    const y=30+i*ROW,hi=y+2,lo=y+ROW-7,mid=y+ROW/2-1;
+    const col=sig.width>1?'var(--cyan)':'var(--green)';
+    svg+=`<text x="${LBL-4}" y="${mid+3}" font-size="10" fill="var(--fg2)" text-anchor="end">${n.slice(0,10)}</text>`;
+
+    if(sig.width===1){
+      let px=LBL,pv=sig.vals[0]?.v||'0';
+      sig.vals.forEach(({t,v})=>{
+        const x=Math.min(LBL+Math.round((t/maxT)*WAVE),W-6);
+        const cy=pv==='1'?hi:lo, ny=v==='1'?hi:lo;
+        svg+=`<line x1="${px}" y1="${cy}" x2="${x}" y2="${cy}" stroke="${col}" stroke-width="1.5"/>`;
+        if(cy!==ny) svg+=`<line x1="${x}" y1="${cy}" x2="${x}" y2="${ny}" stroke="${col}" stroke-width="1.5"/>`;
+        px=x; pv=v;
+      });
+      svg+=`<line x1="${px}" y1="${pv==='1'?hi:lo}" x2="${W-6}" y2="${pv==='1'?hi:lo}" stroke="${col}" stroke-width="1.5"/>`;
+    } else {
+      let px=LBL,pv=sig.vals[0]?.v||'x'.repeat(sig.width);
+      sig.vals.forEach(({t,v})=>{
+        const x=Math.min(LBL+Math.round((t/maxT)*WAVE),W-6);
+        if(x>px){
+          svg+=`<polygon points="${px+2},${hi} ${x-2},${hi} ${x-2},${lo} ${px+2},${lo}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8"/>`;
+          const label = busLabel(pv);
+          const segW = x-px;
+          if(segW>10){
+            const fsz = segW<16 ? 6.5 : 8;
+            svg+=`<text x="${(px+x)/2}" y="${lo-1}" font-size="${fsz}" fill="${col}" text-anchor="middle">${label}</text>`;
+          }
+        }
+        px=x; pv=v;
+      });
+      if(W-6>px){
+        svg+=`<polygon points="${px+2},${hi} ${W-6},${hi} ${W-6},${lo} ${px+2},${lo}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8"/>`;
+        const segW = W-6-px;
+        if(segW>10){
+          const fsz = segW<16 ? 6.5 : 8;
+          svg+=`<text x="${(px+W-6)/2}" y="${lo-1}" font-size="${fsz}" fill="${col}" text-anchor="middle">${busLabel(pv)}</text>`;
+        }
+      }
+    }
+  });
+  svg+='</svg>';
+
+  vc.innerHTML=`
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-shrink:0">
+    <span style="font-size:11px;color:var(--fg2)">VCD Waveform</span>
+    <span class="badge ok">From Icarus Verilog Simulation</span>
+  </div>
+  <div class="fit-stretch">${svg}</div>
+  <div style="margin-top:8px;font-size:10px;color:var(--fg3);flex-shrink:0">${names.length} signals, ${maxT}${timeUnit} total sim time</div>`;
+}
+
+function busLabel(bin){
+  if(/[xXzZ]/.test(bin)) return bin.length>6 ? bin.slice(0,6)+'…' : bin;
+  const hex = parseInt(bin,2).toString(16).toUpperCase();
+  return hex;
+}
+
+function parseVCD(vcd){
+  const signals={}, idMap={};
+  let curTime=0;
+  const lines=vcd.split('\n');
+
+  let timeUnit='ps';
+  const tsMatch = vcd.match(/\$timescale\s+([\d.]+)\s*(s|ms|us|ns|ps|fs)\s*\$end/);
+  if(tsMatch) timeUnit = tsMatch[2];
+
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i].trim();
+    if(line.startsWith('$var ')){
+      const m=line.match(/\$var\s+\w+\s+(\d+)\s+(\S+)\s+(\w+)/);
+      if(m){ idMap[m[2]]={name:m[3],width:parseInt(m[1]),vals:[]}; }
+    } else if(line.startsWith('#')){
+      curTime=parseInt(line.slice(1));
+    } else if(line.startsWith('b')||line.startsWith('B')){
+      const m=line.match(/^[bB]([01xzXZ]+)\s+(\S+)/);
+      if(m&&idMap[m[2]]) idMap[m[2]].vals.push({t:curTime,v:m[1]});
+    } else if(/^[01xzXZ]/.test(line)&&line.length>=2){
+      const v=line[0],id=line.slice(1);
+      if(idMap[id]) idMap[id].vals.push({t:curTime,v});
+    }
+  }
+
+  const out={};
+  Object.values(idMap).forEach(s=>{
+    if(s.vals.length>0){
+      const vals = s.width>1
+        ? s.vals.map(({t,v})=>({t, v: v.padStart(s.width, v[0]==='x'?'x':v[0]==='z'?'z':'0')}))
+        : s.vals;
+      out[s.name]={width:s.width, vals};
+    }
+  });
+  return {signals: out, timeUnit};
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SCHEMATIC
+// ════════════════════════════════════════════════════════════════
+const SCHEMAS={
+  alu:`
+<defs><marker id="a" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+  <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>
+<line x1="18" y1="80" x2="100" y2="80" stroke="var(--green)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="83" font-size="10" fill="var(--green)" text-anchor="end">A[3:0]</text>
+<line x1="18" y1="115" x2="100" y2="115" stroke="var(--green)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="118" font-size="10" fill="var(--green)" text-anchor="end">B[3:0]</text>
+<line x1="18" y1="155" x2="100" y2="155" stroke="var(--yellow)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="158" font-size="10" fill="var(--yellow)" text-anchor="end">op[2:0]</text>
+<polygon points="100,60 205,60 225,100 205,145 100,145 78,100" fill="#0f1f3d" stroke="var(--blue)" stroke-width="2"/>
+<text x="152" y="95" font-size="14" fill="var(--blue)" text-anchor="middle" font-weight="bold">ALU</text>
+<text x="152" y="112" font-size="9" fill="var(--fg3)" text-anchor="middle">4-bit</text>
+<line x1="225" y1="88" x2="310" y2="88" stroke="var(--orange)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="314" y="91" font-size="10" fill="var(--orange)">result[3:0]</text>
+<line x1="225" y1="108" x2="310" y2="108" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="314" y="111" font-size="10" fill="var(--purple)">zero</text>
+<line x1="225" y1="124" x2="310" y2="124" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="314" y="127" font-size="10" fill="var(--purple)">carry</text>
+<circle r="3.5" fill="var(--green)">
+  <animateMotion dur="1.8s" repeatCount="indefinite" path="M 18,80 L 225,88"/>
+</circle>
+<circle r="3.5" fill="var(--green)">
+  <animateMotion dur="2.1s" repeatCount="indefinite" path="M 18,115 L 225,108"/>
+</circle>
+<circle r="3" fill="var(--yellow)">
+  <animateMotion dur="2.5s" repeatCount="indefinite" path="M 18,155 L 152,100 L 225,88"/>
+</circle>`,
+
+  counter:`
+<defs><marker id="a" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+  <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>
+<line x1="18" y1="72" x2="95" y2="72" stroke="var(--blue)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="75" font-size="10" fill="var(--blue)" text-anchor="end">clk</text>
+<line x1="18" y1="102" x2="95" y2="102" stroke="var(--red)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="105" font-size="10" fill="var(--red)" text-anchor="end">rst</text>
+${[0,1,2,3].map(i=>`
+<rect x="${105+i*48}" y="56" width="40" height="36" rx="3" fill="#0d1a2d" stroke="var(--blue)" stroke-width="1.2"/>
+<text x="${125+i*48}" y="77" font-size="9" fill="var(--blue)" text-anchor="middle">FF${i}</text>
+${i<3?`<line x1="${145+i*48}" y1="74" x2="${153+i*48}" y2="74" stroke="var(--fg3)" stroke-width="0.8"/>`:''}`).join('')}
+<line x1="293" y1="74" x2="370" y2="74" stroke="var(--green)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="374" y="77" font-size="10" fill="var(--green)">count[3:0]</text>
+<line x1="75" y1="72" x2="75" y2="130" stroke="var(--blue)" stroke-width="0.8" stroke-dasharray="3,2"/>
+${[0,1,2,3].map(i=>`<line x1="75" y1="130" x2="${115+i*48}" y2="130" stroke="var(--blue)" stroke-width="0.8" stroke-dasharray="3,2"/>
+<line x1="${115+i*48}" y1="130" x2="${115+i*48}" y2="92" stroke="var(--blue)" stroke-width="0.8" marker-end="url(#a)"/>`).join('')}
+<circle r="3.5" fill="var(--blue)">
+  <animateMotion dur="1.2s" repeatCount="indefinite" path="M 18,72 L 95,72"/>
+</circle>`,
+
+  mux:`
+<defs><marker id="a" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+  <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>
+${[0,1,2,3].map(i=>`
+<line x1="18" y1="${50+i*30}" x2="100" y2="${50+i*30}" stroke="var(--cyan)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="${53+i*30}" font-size="10" fill="var(--cyan)" text-anchor="end">d${i}</text>`).join('')}
+<line x1="165" y1="195" x2="165" y2="172" stroke="var(--yellow)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="165" y="210" font-size="10" fill="var(--yellow)" text-anchor="middle">sel[1:0]</text>
+<polygon points="100,38 185,38 185,158 100,158" fill="#1a1f0d" stroke="var(--blue)" stroke-width="1.8"/>
+<text x="142" y="100" font-size="13" fill="var(--blue)" text-anchor="middle" font-weight="bold">MUX</text>
+<text x="142" y="115" font-size="9" fill="var(--fg3)" text-anchor="middle">4 : 1</text>
+<line x1="185" y1="98" x2="270" y2="98" stroke="var(--orange)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="274" y="101" font-size="10" fill="var(--orange)">y</text>
+<circle r="3.5" fill="var(--cyan)">
+  <animateMotion dur="1.6s" repeatCount="indefinite" path="M 18,80 L 185,98"/>
+</circle>`,
+
+  ff:`
+<defs><marker id="a" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+  <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>
+<line x1="18" y1="70" x2="95" y2="70" stroke="var(--blue)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="73" font-size="10" fill="var(--blue)" text-anchor="end">clk</text>
+<line x1="18" y1="100" x2="95" y2="100" stroke="var(--green)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="103" font-size="10" fill="var(--green)" text-anchor="end">d</text>
+<line x1="18" y1="130" x2="95" y2="130" stroke="var(--red)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="133" font-size="10" fill="var(--red)" text-anchor="end">rst_n</text>
+<rect x="95" y="54" width="110" height="96" rx="4" fill="#0d1f0d" stroke="var(--blue)" stroke-width="2"/>
+<text x="150" y="96" font-size="14" fill="var(--blue)" text-anchor="middle" font-weight="bold">D-FF</text>
+<text x="150" y="112" font-size="9" fill="var(--fg3)" text-anchor="middle">posedge clk</text>
+<line x1="205" y1="88" x2="290" y2="88" stroke="var(--orange)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="294" y="91" font-size="10" fill="var(--orange)">q</text>
+<line x1="205" y1="112" x2="290" y2="112" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="294" y="115" font-size="10" fill="var(--purple)">q_n</text>
+<circle r="3.5" fill="var(--green)">
+  <animateMotion dur="1.5s" repeatCount="indefinite" path="M 18,100 L 205,88"/>
+</circle>`,
+
+  fsm:`
+<defs>
+  <marker id="a" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+    <polygon points="0,0 6,3 0,6" fill="var(--blue)"/></marker>
+</defs>
+<circle cx="75"  cy="110" r="40" fill="var(--red-bg)"   stroke="var(--red)"   stroke-width="2"/>
+<text x="75"  y="106" font-size="12" fill="var(--red)"   text-anchor="middle" font-weight="bold">RED</text>
+<text x="75"  y="121" font-size="9"  fill="var(--red)"   text-anchor="middle">state=0</text>
+<circle cx="210" cy="62"  r="40" fill="var(--green-bg)"  stroke="var(--green)" stroke-width="2"/>
+<text x="210" y="58"  font-size="12" fill="var(--green)" text-anchor="middle" font-weight="bold">GREEN</text>
+<text x="210" y="73"  font-size="9"  fill="var(--green)" text-anchor="middle">state=1</text>
+<circle cx="333" cy="110" r="40" fill="var(--yellow-bg)" stroke="var(--yellow)"stroke-width="2"/>
+<text x="333" y="106" font-size="12" fill="var(--yellow)"text-anchor="middle" font-weight="bold">YELLOW</text>
+<text x="333" y="121" font-size="9"  fill="var(--yellow)"text-anchor="middle">state=2</text>
+<path d="M 112,92 Q 150,68 172,72" stroke="var(--blue)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<text x="140" y="72" font-size="9" fill="var(--fg3)" text-anchor="middle">↑clk</text>
+<path d="M 248,72 Q 285,72 295,90" stroke="var(--blue)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<path d="M 318,148 Q 210,195 92,148" stroke="var(--blue)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<line x1="75" y1="30" x2="75" y2="68" stroke="var(--red)" stroke-width="1.5" marker-end="url(#a)" stroke-dasharray="4,2"/>
+<text x="75" y="25" font-size="9" fill="var(--red)" text-anchor="middle">rst</text>
+<circle r="5" fill="var(--blue)" opacity="0.9">
+  <animateMotion dur="3s" repeatCount="indefinite"
+    path="M 75,110 Q 140,68 210,62 Q 270,72 333,110 Q 210,185 75,110 Z"/>
+</circle>`,
+
+  uart:`
+<defs><marker id="a" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+  <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>
+<line x1="18" y1="60" x2="90" y2="60" stroke="var(--blue)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="63" font-size="10" fill="var(--blue)" text-anchor="end">clk</text>
+<line x1="18" y1="85" x2="90" y2="85" stroke="var(--yellow)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="88" font-size="10" fill="var(--yellow)" text-anchor="end">tx_start</text>
+<line x1="18" y1="110" x2="90" y2="110" stroke="var(--cyan)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="113" font-size="10" fill="var(--cyan)" text-anchor="end">tx_data[7:0]</text>
+<rect x="90" y="44" width="130" height="90" rx="4" fill="#0d1a1f" stroke="var(--blue)" stroke-width="2"/>
+<text x="155" y="86" font-size="13" fill="var(--blue)" text-anchor="middle" font-weight="bold">UART TX</text>
+<text x="155" y="102" font-size="9" fill="var(--fg3)" text-anchor="middle">Serial Shift</text>
+<line x1="220" y1="78" x2="305" y2="78" stroke="var(--green)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="309" y="81" font-size="10" fill="var(--green)">tx</text>
+<line x1="220" y1="100" x2="305" y2="100" stroke="var(--orange)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="309" y="103" font-size="10" fill="var(--orange)">busy</text>
+<circle r="3.5" fill="var(--cyan)">
+  <animateMotion dur="2s" repeatCount="indefinite" path="M 18,110 L 220,78"/>
+</circle>`,
+
+  fifo:`
+<defs><marker id="a" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+  <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>
+<line x1="18" y1="60" x2="90" y2="60" stroke="var(--blue)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="63" font-size="10" fill="var(--blue)" text-anchor="end">clk</text>
+<line x1="18" y1="85" x2="90" y2="85" stroke="var(--green)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="88" font-size="10" fill="var(--green)" text-anchor="end">wr_en</text>
+<line x1="18" y1="108" x2="90" y2="108" stroke="var(--cyan)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="111" font-size="10" fill="var(--cyan)" text-anchor="end">din[7:0]</text>
+<line x1="18" y1="132" x2="90" y2="132" stroke="var(--orange)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="14" y="135" font-size="10" fill="var(--orange)" text-anchor="end">rd_en</text>
+<rect x="90" y="44" width="140" height="120" rx="4" fill="#0d1a0d" stroke="var(--blue)" stroke-width="2"/>
+${[0,1,2,3].map(i=>`<rect x="${100}" y="${54+i*25}" width="120" height="20" rx="2" fill="#162016" stroke="var(--fg3)" stroke-width="0.5"/>
+<text x="160" y="${68+i*25}" font-size="9" fill="var(--fg3)" text-anchor="middle">slot ${i}</text>`).join('')}
+<text x="160" y="175" font-size="9" fill="var(--fg3)" text-anchor="middle">8×8 FIFO</text>
+<line x1="230" y1="88" x2="310" y2="88" stroke="var(--cyan)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="314" y="91" font-size="10" fill="var(--cyan)">dout[7:0]</text>
+<line x1="230" y1="110" x2="310" y2="110" stroke="var(--red)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="314" y="113" font-size="10" fill="var(--red)">full</text>
+<line x1="230" y1="130" x2="310" y2="130" stroke="var(--yellow)" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="314" y="133" font-size="10" fill="var(--yellow)">empty</text>
+<circle r="3.5" fill="var(--cyan)">
+  <animateMotion dur="1.8s" repeatCount="indefinite" path="M 18,108 L 230,88"/>
+</circle>`
+};
+
+function buildGenericSchema(){
+  const p = extractPortsLocal(files.design);
+  const ins = p.inputs.slice(0,8), outs = p.outputs.slice(0,8);
+  const rows = Math.max(ins.length, outs.length, 1);
+  const boxH = Math.max(80, rows*26+30);
+  const cx = 200, cy = 20+boxH/2;
+
+  let s = `<defs><marker id="ga" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+    <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>`;
+  s += `<rect x="140" y="20" width="120" height="${boxH}" rx="5" fill="#0c1830" stroke="var(--blue)" stroke-width="2"/>`;
+  s += `<text x="${cx}" y="${cy-4}" font-size="13" fill="var(--blue)" text-anchor="middle" font-weight="bold">${p.module}</text>`;
+  s += `<text x="${cx}" y="${cy+12}" font-size="9" fill="var(--fg3)" text-anchor="middle">${ins.length}in / ${outs.length}out</text>`;
+
+  ins.forEach((nm,i)=>{
+    const y=36+i*26;
+    s += `<line x1="20" y1="${y}" x2="138" y2="${y}" stroke="var(--green)" stroke-width="1.5" marker-end="url(#ga)"/>`;
+    s += `<text x="16" y="${y+3}" font-size="9" fill="var(--green)" text-anchor="end">${nm}</text>`;
+    s += `<circle r="3" fill="var(--green)"><animateMotion dur="${1.4+i*0.2}s" repeatCount="indefinite" path="M 20,${y} L ${cx},${cy}"/></circle>`;
+  });
+  outs.forEach((nm,i)=>{
+    const y=36+i*26;
+    s += `<line x1="262" y1="${y}" x2="380" y2="${y}" stroke="var(--orange)" stroke-width="1.5" marker-end="url(#ga)"/>`;
+    s += `<text x="384" y="${y+3}" font-size="9" fill="var(--orange)">${nm}</text>`;
+    s += `<circle r="3" fill="var(--orange)"><animateMotion dur="${1.6+i*0.2}s" repeatCount="indefinite" path="M ${cx},${cy} L 262,${y}"/></circle>`;
+  });
+
+  if(ins.length===0 && outs.length===0){
+    s += `<text x="${cx}" y="${cy+28}" font-size="9" fill="var(--fg3)" text-anchor="middle">(no ports detected — check your module declaration)</text>`;
+  }
+  return s;
+}
+
+function renderSchema(){
+  const known = !!SCHEMAS[curEx];
+  const sc = known ? SCHEMAS[curEx] : buildGenericSchema();
+  const badgeTxt = known ? curEx : 'custom — auto-generated';
+  const footer = known
+    ? '⚡ Animated dots represent signal propagation. Each circle travels from source to destination at circuit speed.'
+    : '⚡ Auto-generated from your design\'s ports. Load a built-in example (sidebar) for a curated, detailed schematic.';
+  const par = fitModeOn ? 'none' : 'xMidYMid meet';
+  document.getElementById('vcont').innerHTML=`
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0">
+    <span style="font-size:11px;color:var(--fg2)">Schematic — animated signal flow</span>
+    <span class="badge ${known?'info':'warn'}">${badgeTxt}</span>
+  </div>
+  <div class="schema-wrap fit-stretch">
+    <svg viewBox="-40 0 480 230" preserveAspectRatio="${par}">${sc}</svg>
+  </div>
+  <div style="margin-top:8px;padding:7px;background:var(--bg1);border:1px solid var(--bg3);border-radius:4px;font-size:10px;color:var(--fg3);flex-shrink:0">
+    ${footer}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  BLOCK DIAGRAM
+// ════════════════════════════════════════════════════════════════
+function renderBlock(){
+  const code=files.design;
+  const p=extractPortsLocal(code);
+  const ins=p.inputs, outs=p.outputs, mod=p.module;
+
+  const W=390, boxH=Math.max(120,Math.max(ins.length,outs.length)*28+50);
+  const H=boxH+50;
+  const par = fitModeOn ? 'none' : 'xMidYMid meet';
+  const MARGIN = 36; // breathing room so edge labels don't clip when stretched
+
+  let svg=`<svg viewBox="-${MARGIN} 0 ${W+MARGIN*2} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px">`;
+  svg+=`<defs><marker id="ba" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+    <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>`;
+  svg+=`<rect x="130" y="20" width="130" height="${boxH}" rx="5" fill="#0c1830" stroke="var(--blue)" stroke-width="2"/>`;
+  svg+=`<text x="195" y="${20+boxH/2-8}" font-size="14" fill="var(--blue)" text-anchor="middle" font-weight="bold">${mod}</text>`;
+  const langLabel=document.getElementById('lang').value==='systemverilog'?'SV':'Verilog';
+  svg+=`<text x="195" y="${20+boxH/2+10}" font-size="9" fill="var(--fg3)" text-anchor="middle">${langLabel}</text>`;
+  svg+=`<text x="195" y="${20+boxH/2+24}" font-size="9" fill="var(--fg3)" text-anchor="middle">${code.split('\n').length} lines</text>`;
+
+  ins.slice(0,8).forEach((nm,i)=>{
+    const y=36+i*28;
+    svg+=`<line x1="14" y1="${y}" x2="128" y2="${y}" stroke="var(--green)" stroke-width="1.5" marker-end="url(#ba)"/>`;
+    svg+=`<text x="10" y="${y+3}" font-size="9" fill="var(--green)" text-anchor="end">${nm}</text>`;
+    svg+=`<circle cx="14" cy="${y}" r="2.5" fill="var(--green)">
+      <animate attributeName="cx" values="14;130" dur="${1.1+i*0.15}s" repeatCount="indefinite"/>
+    </circle>`;
+  });
+  outs.slice(0,8).forEach((nm,i)=>{
+    const y=36+i*28;
+    svg+=`<line x1="262" y1="${y}" x2="376" y2="${y}" stroke="var(--red)" stroke-width="1.5" marker-end="url(#ba)"/>`;
+    svg+=`<text x="380" y="${y+3}" font-size="9" fill="var(--red)">${nm}</text>`;
+  });
+  svg+='</svg>';
+
+  let rows='';
+  ins.forEach(n=>rows+=`<tr><td style="color:var(--green)">→ in</td><td>${n}</td><td style="color:var(--fg3)">input</td></tr>`);
+  outs.forEach(n=>rows+=`<tr><td style="color:var(--red)">← out</td><td>${n}</td><td style="color:var(--fg3)">output</td></tr>`);
+
+  document.getElementById('vcont').innerHTML=`
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0">
+    <span style="font-size:11px;color:var(--fg2)">Block Diagram — ${mod}</span>
+    <span class="badge info">${ins.length}in / ${outs.length}out</span>
+  </div>
+  <div class="fit-stretch" style="min-height:160px">${svg}</div>
+  <div style="flex-shrink:0;overflow:auto;max-height:160px;margin-top:6px">
+    <table class="port-table">
+      <tr><th>Direction</th><th>Signal</th><th>Type</th></tr>
+      ${rows}
+    </table>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  REAL-WORLD APPS
+// ════════════════════════════════════════════════════════════════
+const APPS={
+  alu:[
+    {e:'🖥️',t:'CPU Arithmetic Unit',d:'Every x86/ARM processor core contains one or more ALUs. Intel Core i9 has 4 ALU ports running billions of ops/second on each core.'},
+    {e:'🎮',t:'GPU Shader Core',d:'GPUs pack thousands of ALUs for parallel SIMD math — matrix multiply and dot products power 3D rendering and AI inference on CUDA/ROCm.'},
+    {e:'🔐',t:'AES Crypto Engine',d:'AES-NI instructions use dedicated bitwise ALU units (XOR, AND, SHIFT). Hardware AES is 10-40× faster than pure software.'},
+  ],
+  counter:[
+    {e:'⏱️',t:'System Timer & PWM',d:'STM32, AVR, and ESP32 microcontrollers use hardware counters for PWM generation, input capture, UART baud rate clocks, and OS tick timers.'},
+    {e:'📡',t:'Frequency Divider',d:'A 100 MHz crystal oscillator divided by a 4-bit counter generates 6.25 MHz clocks for lower-speed SPI, I2C, or ADC peripherals.'},
+    {e:'💾',t:'DMA Address Generator',d:'Memory DMA engines use auto-increment counters to step through source/dest addresses during burst memory transfers.'},
+  ],
+  mux:[
+    {e:'🌐',t:'Network Switch Fabric',d:'A 48-port Ethernet switch is essentially a massive MUX matrix — every clock cycle it routes frames from input ports to output ports at wire speed.'},
+    {e:'📺',t:'Broadcast Video Router',d:'TV production switchers use MUX chains to select live camera feeds, recorded content, and graphics overlays for on-air routing.'},
+    {e:'🔌',t:'CPU Memory Bus Arbiter',d:'Priority MUXes select which agent (CPU, GPU, DMA) wins access to the memory bus each cycle, resolving contention.'},
+  ],
+  ff:[
+    {e:'💾',t:'CPU Register File',d:'CPU registers (RAX, R8–R15, XMM, ZMM) are arrays of D flip-flops. A modern x86 CPU has 180+ physical registers to support out-of-order execution.'},
+    {e:'📶',t:'UART / SPI Shift Register',d:'Serial interfaces use chains of DFFs to shift bits in or out at configurable baud rates. A UART TX is an 8-bit shift register.'},
+    {e:'🔒',t:'Clock Domain Synchronizer',d:'Two-stage DFF synchronizers (double-flop) prevent metastability when signals cross clock domain boundaries in ASICs and FPGAs.'},
+  ],
+  fsm:[
+    {e:'🚦',t:'Traffic Light Controller',d:'Embedded MCUs in smart intersections run FSMs exactly like this one — managing light sequences with safety interlocks and pedestrian inputs.'},
+    {e:'📱',t:'USB 3.2 Protocol Stack',d:'The USB PHY layer implements a 22-state FSM for link training, LFPS signaling, power management (U0-U3), and error recovery.'},
+    {e:'🤖',t:'Industrial Robot Sequencer',d:'Robot arms use FSMs: idle → move → approach → grip → lift → place → release. Safety guards add fault and e-stop states.'},
+  ],
+  uart:[
+    {e:'🖥️',t:'PC Serial / COM Port',d:'UART is the oldest interface still in widespread use — it connects microcontrollers to GPS modules, Bluetooth adapters, and debug consoles.'},
+    {e:'📡',t:'IoT Sensor Comms',d:'ESP8266/ESP32 modules communicate with host MCUs over UART at 115200 baud. Virtually every embedded Linux board exposes a UART debug port.'},
+    {e:'🔧',t:'JTAG / Debug Probe',d:'OpenOCD and J-Link debug probes use UART-like serial framing to transfer firmware images and single-step through assembly code.'},
+  ],
+  fifo:[
+    {e:'🌐',t:'Network Packet Buffer',d:'Every NIC and switch uses FIFOs as elastic buffers between the MAC and PHY, absorbing burst traffic and managing clock domain crossings.'},
+    {e:'🔊',t:'Audio Streaming Buffer',d:'I2S audio interfaces use FIFOs to decouple the CPU DMA engine from the exact-rate audio clock, preventing glitches and underruns.'},
+    {e:'🖥️',t:'GPU Command Queue',d:'The GPU driver writes draw calls into a FIFO ring buffer; the GPU reads and executes them at its own pace — decoupling the CPU and GPU clocks.'},
+  ],
+};
+
+function _escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  GATE-LEVEL NETLIST SCHEMATIC  (parses Yosys generic-cell output
+//  into a gate graph and auto-lays it out left-to-right by logic
+//  depth, similar to a standard schematic viewer.)
+// ════════════════════════════════════════════════════════════════
+let netlistViewMode = 'schematic'; // 'schematic' | 'code'
+
+function parseNetlistPorts(code){
+  const ports = { inputs: [], outputs: [] };
+  // Handles both single-port lines (input clk;) AND comma-separated lists
+  // (input clk, rst, in_a, in_b;) — the latter is valid Verilog-95 style
+  // that some synthesis paths emit instead of one port per line.
+  const portRe = /\b(input|output)\b(?:\s+(?:wire|reg|tri))?(?:\s*\[\s*(\d+)\s*:\s*(\d+)\s*\])?\s+((?:\w+\s*,\s*)*\w+)\s*;/g;
+  let m; const seen = new Set();
+  while((m = portRe.exec(code))){
+    const [, dir, msb, lsb, names] = m;
+    const width = msb !== undefined ? (parseInt(msb)-parseInt(lsb)+1) : 1;
+    for(const rawName of names.split(',')){
+      const name = rawName.trim();
+      if(!name) continue;
+      const key = dir+name;
+      if(seen.has(key)) continue;
+      seen.add(key);
+      ports[dir==='input'?'inputs':'outputs'].push({name, width});
+    }
+  }
+  return ports;
+}
+
+function parseNetlistGates(code){
+  const assignRe = /assign\s+([\w\[\]:]+)\s*=\s*([^;]+);/g;
+  const gates = []; let m;
+  while((m = assignRe.exec(code))) gates.push({ lhs: m[1].trim(), rhs: m[2].trim() });
+  return gates;
+}
+
+function classifyNetlistGate(rhs){
+  rhs = rhs.trim();
+
+  // Ternary mux: cond ? a : b — Yosys emits these for mux cells instead of
+  // AND/OR chains (e.g. "sel[0] ? d[3] : d[2]"). Must be checked first,
+  // and only at the TOP level (depth 0), since '?'/':' can't appear nested
+  // inside the simple bitwise expressions handled further below.
+  let qIdx = -1, cIdx = -1, qDepth = 0;
+  for(let i=0;i<rhs.length;i++){
+    const c = rhs[i];
+    if(c==='(') qDepth++;
+    else if(c===')') qDepth--;
+    else if(qDepth===0 && c==='?' && qIdx===-1) qIdx = i;
+    else if(qDepth===0 && c===':' && qIdx!==-1 && cIdx===-1) cIdx = i;
+  }
+  if(qIdx!==-1 && cIdx!==-1){
+    const cond = rhs.slice(0, qIdx).trim();
+    const a = rhs.slice(qIdx+1, cIdx).trim();
+    const b = rhs.slice(cIdx+1).trim();
+    // inputs order [data0, data1, sel] — output = sel ? data1 : data0
+    return { type: 'MUX2', inputs: [b, a, cond] };
+  }
+
+  let inverted = false, body = rhs;
+  let m = body.match(/^~\((.*)\)$/);
+  if(m){ inverted = true; body = m[1]; }
+  if(/^~?[\w\[\]:.]+$/.test(body)){
+    const sig = body.replace(/^~/, '');
+    const isInv = body.startsWith('~') || inverted;
+    return { type: isInv ? 'NOT' : 'BUF', inputs: [sig] };
+  }
+  let depth = 0, opIdx = -1, opChar = null;
+  for(let i=0;i<body.length;i++){
+    const c = body[i];
+    if(c==='(') depth++;
+    else if(c===')') depth--;
+    else if(depth===0 && (c==='&'||c==='|'||c==='^')){ opIdx=i; opChar=c; break; }
+  }
+  if(opIdx===-1) return { type:'BUF', inputs:[body.replace(/^~/,'')] };
+  let left = body.slice(0,opIdx).trim(), right = body.slice(opIdx+1).trim();
+  const stripInv = (s) => {
+    let inv=false, mm=s.match(/^~\((.*)\)$/);
+    if(mm){ inv=true; s=mm[1]; } else if(s.startsWith('~')){ inv=true; s=s.slice(1); }
+    return { sig: s.trim(), inv };
+  };
+  const L = stripInv(left), R = stripInv(right);
+  const baseOp = opChar==='&'?'AND':opChar==='|'?'OR':'XOR';
+  let type;
+  if(baseOp==='XOR') type = inverted ? 'XNOR' : 'XOR';
+  else if(L.inv || R.inv) type = inverted ? (baseOp==='AND'?'ORNOT':'ANDNOT') : (baseOp==='AND'?'ANDNOT':'ORNOT');
+  else type = inverted ? (baseOp==='AND'?'NAND':'NOR') : baseOp;
+  return { type, inputs: [L.sig, R.sig] };
+}
+
+function buildNetlistLayout(code){
+  const ports = parseNetlistPorts(code);
+  const rawGates = parseNetlistGates(code);
+  if(!rawGates.length) return null;
+
+  const classified = rawGates.map(g => ({ id: g.lhs, ...classifyNetlistGate(g.rhs) }));
+  const gateMap = {};
+  classified.forEach(g => gateMap[g.id] = g);
+
+  const inputSignals = [];
+  const declaredInputSet = new Set();
+  ports.inputs.forEach(p=>{
+    if(p.width>1) for(let i=0;i<p.width;i++){ const s=`${p.name}[${i}]`; inputSignals.push(s); declaredInputSet.add(s); }
+    else { inputSignals.push(p.name); declaredInputSet.add(p.name); }
+  });
+  const outputSignals = [];
+  ports.outputs.forEach(p=>{
+    if(p.width>1) for(let i=0;i<p.width;i++) outputSignals.push(`${p.name}[${i}]`);
+    else outputSignals.push(p.name);
+  });
+
+  // Some netlists reference signals that are neither a declared input port
+  // NOR the output of any assign statement (e.g. a register/DFF output that
+  // a partial synthesis pass left as a bare wire). These "implicit" signals
+  // must still get their own row slot at column 0 — otherwise they all
+  // collapse onto row 0 and visually collide with the first real input.
+  const implicitSignals = [];
+  const seenImplicit = new Set();
+  classified.forEach(g=>{
+    g.inputs.forEach(sig=>{
+      if(!declaredInputSet.has(sig) && !gateMap[sig] && !seenImplicit.has(sig)){
+        seenImplicit.add(sig);
+        implicitSignals.push(sig);
+      }
+    });
+  });
+
+  const depthMap = {};
+  inputSignals.forEach(s => depthMap[s]=0);
+  implicitSignals.forEach(s => depthMap[s]=0);
+  function getDepth(sig, visiting=new Set()){
+    if(sig in depthMap) return depthMap[sig];
+    if(visiting.has(sig)) return 0;
+    visiting.add(sig);
+    const g = gateMap[sig];
+    if(!g){ depthMap[sig]=0; return 0; }
+    const d = 1 + Math.max(0, ...g.inputs.map(i=>getDepth(i,visiting)));
+    depthMap[sig]=d;
+    return d;
+  }
+  classified.forEach(g=>getDepth(g.id));
+  outputSignals.forEach(s=>{ if(!(s in depthMap)) getDepth(s); });
+
+  const maxDepth = Math.max(0, ...Object.values(depthMap));
+  const columns = {};
+  for(let c=1;c<=maxDepth;c++) columns[c]=[];
+  classified.forEach(g=>{ const d=depthMap[g.id]; if(d>=1) columns[d].push(g); });
+
+  // Column-0 ("input rail") row assignment: real inputs first, then any
+  // implicit signals appended below them — every depth-0 signal now gets
+  // a unique row, so nothing overlaps.
+  const col0Signals = [...inputSignals, ...implicitSignals];
+  const rowIndex = {};
+  col0Signals.forEach((s,i)=>rowIndex[s]=i);
+  for(let c=1;c<=maxDepth;c++) columns[c].forEach((g,i)=>rowIndex[g.id]=i);
+
+  function barycenter(g){
+    const ys = g.inputs.map(i => rowIndex[i]!==undefined ? rowIndex[i] : 0);
+    return ys.reduce((a,b)=>a+b,0)/ys.length;
+  }
+  for(let pass=0; pass<6; pass++){
+    for(let c=1;c<=maxDepth;c++){
+      columns[c].sort((a,b)=>barycenter(a)-barycenter(b));
+      columns[c].forEach((g,i)=>rowIndex[g.id]=i);
+    }
+    for(let c=maxDepth;c>=1;c--){
+      columns[c].sort((a,b)=>barycenter(a)-barycenter(b));
+      columns[c].forEach((g,i)=>rowIndex[g.id]=i);
+    }
+  }
+
+  return { ports, classified, gateMap, depthMap, columns, maxDepth, inputSignals, implicitSignals, outputSignals, rowIndex };
+}
+
+// Gate family lookup: shape + whether output/input carries a bubble.
+// ANDNOT/ORNOT are real Yosys generic-cell primitives — AND/OR with one
+// inverted INPUT — distinct from NAND/NOR which invert the OUTPUT.
+const NL_GATE_INFO = {
+  AND:    { shape:'and', outBubble:false, inBubble:false },
+  NAND:   { shape:'and', outBubble:true,  inBubble:false },
+  ANDNOT: { shape:'and', outBubble:false, inBubble:true  },
+  OR:     { shape:'or',  outBubble:false, inBubble:false },
+  NOR:    { shape:'or',  outBubble:true,  inBubble:false },
+  ORNOT:  { shape:'or',  outBubble:false, inBubble:true  },
+  XOR:    { shape:'xor', outBubble:false, inBubble:false },
+  XNOR:   { shape:'xor', outBubble:true,  inBubble:false },
+  NOT:    { shape:'not', outBubble:true,  inBubble:false },
+  BUF:    { shape:'not', outBubble:false, inBubble:false },
+  MUX2:   { shape:'mux', outBubble:false, inBubble:false },
+};
+function nlGateInfo(type){ return NL_GATE_INFO[type] || { shape:'box', outBubble:false, inBubble:false }; }
+
+const NL_GW = 36, NL_GH = 22;
+const NL_MUX_GH = 34; // taller than logic gates — needs room for 2 stacked data inputs + sel nub on top
+
+function nlGatePoints(type, x, y){
+  const info = nlGateInfo(type);
+  let inPts, outPt;
+  if(info.shape==='not'){ inPts=[[x,y+NL_GH/2]]; outPt=[x+NL_GW,y+NL_GH/2]; }
+  else if(info.shape==='and'||info.shape==='box'){ inPts=[[x,y+NL_GH*0.22],[x,y+NL_GH*0.78]]; outPt=[x+NL_GW,y+NL_GH/2]; }
+  else if(info.shape==='mux'){
+    // 3 input points: data0 (top-left), data1 (bottom-left), sel (top, vertical nub)
+    inPts = [[x, y+NL_MUX_GH*0.22], [x, y+NL_MUX_GH*0.78], [x+NL_GW/2, y-8]];
+    outPt = [x+NL_GW, y+NL_MUX_GH/2];
+  }
+  else { inPts=[[x+3,y+NL_GH*0.22],[x+3,y+NL_GH*0.78]]; outPt=[x+NL_GW,y+NL_GH/2]; }
+  return { inPts, outPt: info.outBubble ? [outPt[0]+6,outPt[1]] : outPt, bubble: info.outBubble };
+}
+
+function nlGateShapeSVG(type, x, y){
+  const info = nlGateInfo(type);
+  const STROKE = '#ff8a80';
+  let body = '';
+  if(info.shape==='not'){
+    body = `<polygon points="${x},${y} ${x+NL_GW},${y+NL_GH/2} ${x},${y+NL_GH}" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
+  } else if(info.shape==='and'){
+    body = `<path d="M ${x},${y} L ${x+NL_GW*0.55},${y} A ${NL_GH/2},${NL_GH/2} 0 0 1 ${x+NL_GW*0.55},${y+NL_GH} L ${x},${y+NL_GH} Z" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
+  } else if(info.shape==='or'||info.shape==='xor'){
+    body = `<path d="M ${x},${y} Q ${x+NL_GW*0.35},${y} ${x+NL_GW*0.55},${y+NL_GH*0.15} Q ${x+NL_GW},${y+NL_GH/2} ${x+NL_GW*0.55},${y+NL_GH*0.85} Q ${x+NL_GW*0.35},${y+NL_GH} ${x},${y+NL_GH} Q ${x+NL_GW*0.18},${y+NL_GH/2} ${x},${y} Z" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
+    if(info.shape==='xor') body += `<path d="M ${x-4},${y} Q ${x-4+NL_GW*0.18},${y+NL_GH/2} ${x-4},${y+NL_GH}" fill="none" stroke="${STROKE}" stroke-width="1"/>`;
+  } else if(info.shape==='mux'){
+    const topY = y, botY = y + NL_MUX_GH, inset = 8;
+    body = `<path d="M ${x},${topY} L ${x+NL_GW},${topY+inset} L ${x+NL_GW},${botY-inset} L ${x},${botY} Z" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
+    body += `<text x="${x+4}" y="${topY+13}" font-size="7.5" fill="${STROKE}" font-family="monospace">0</text>`;
+    body += `<text x="${x+4}" y="${botY-7}" font-size="7.5" fill="${STROKE}" font-family="monospace">1</text>`;
+    // sel nub line from gate top up to where the routed sel wire will land
+    body += `<line x1="${x+NL_GW/2}" y1="${topY-8}" x2="${x+NL_GW/2}" y2="${topY+inset*0.6}" stroke="${STROKE}" stroke-width="1"/>`;
+  } else {
+    body = `<rect x="${x}" y="${y}" width="${NL_GW}" height="${NL_GH}" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
+  }
+  if(info.outBubble){
+    const p = nlGatePoints(type,x,y);
+    body += `<circle cx="${p.outPt[0]-3}" cy="${p.outPt[1]}" r="3" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
+  }
+  if(info.inBubble){
+    const p = nlGatePoints(type,x,y);
+    const ip = p.inPts[1];
+    body += `<circle cx="${ip[0]+3}" cy="${ip[1]}" r="2.5" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1"/>`;
+  }
+  return body;
+}
+
+function buildNetlistSchematicSVG(code, fitMode){
+  const L = buildNetlistLayout(code);
+  if(!L) return null;
+  const { inputSignals, implicitSignals, outputSignals, columns, maxDepth, gateMap } = L;
+  const WIRE = '#3fb950', TXT = '#8b949e', IMPLICIT_WIRE = '#d2a8ff', IMPLICIT_TXT = '#a98ce8';
+  const COL_GAP = 100, ROW_GAP = 40, LEFT_MARGIN = 130, TOP_MARGIN = 32;
+
+  const colX = {};
+  colX[0] = LEFT_MARGIN;
+  for(let c=1;c<=maxDepth;c++) colX[c] = LEFT_MARGIN + c*COL_GAP;
+  colX[maxDepth+1] = LEFT_MARGIN + (maxDepth+1)*COL_GAP;
+
+  // rowCenterY(row) = vertical center of a given row slot. ROW_GAP is sized
+  // generously enough (40px) to fit the tallest gate (MUX2, 34px + 8px sel
+  // nub above it) without colliding with the row above.
+  function rowCenterY(row){ return TOP_MARGIN + row*ROW_GAP + ROW_GAP/2; }
+  function gateTopY(type, row){
+    const h = nlGateInfo(type).shape==='mux' ? NL_MUX_GH : NL_GH;
+    return rowCenterY(row) - h/2;
+  }
+
+  // Column-0 ("input rail") includes both real declared inputs AND any
+  // implicit signals (referenced but never declared/assigned — typically
+  // a register output a partial synth pass left as a bare wire). Each
+  // gets its own row so they never visually collide.
+  const col0Signals = [...inputSignals, ...implicitSignals];
+  const posRow = {};
+  col0Signals.forEach((s,i)=>posRow[s]=i);
+  let maxRows = col0Signals.length;
+  for(let c=1;c<=maxDepth;c++){
+    columns[c].forEach((g,i)=>{ posRow[g.id]=i; });
+    maxRows = Math.max(maxRows, columns[c].length);
+  }
+  outputSignals.forEach((s,i)=>{ posRow[s] = posRow[s] !== undefined ? posRow[s] : i; });
+  maxRows = Math.max(maxRows, outputSignals.length);
+
+  const totalW = colX[maxDepth+1] + 100;
+  const totalH = TOP_MARGIN + maxRows*ROW_GAP + 20;
+
+  function pointFor(sig){
+    if(gateMap[sig]){
+      const d = L.depthMap[sig];
+      const x = colX[d], y = gateTopY(gateMap[sig].type, posRow[sig]);
+      return nlGatePoints(gateMap[sig].type, x, y).outPt;
+    }
+    const y = rowCenterY(posRow[sig] !== undefined ? posRow[sig] : 0);
+    return [colX[0]+24, y];
+  }
+
+  let svg = '';
+  inputSignals.forEach(s=>{
+    const y = rowCenterY(posRow[s]);
+    svg += `<line x1="46" y1="${y}" x2="${colX[0]+24}" y2="${y}" stroke="${WIRE}" stroke-width="1"/>`;
+    svg += `<text x="42" y="${y+3}" font-size="9" fill="${TXT}" text-anchor="end" font-family="monospace">${s}</text>`;
+  });
+  // Implicit signals (e.g. undriven register outputs) get a dashed purple
+  // stub and a "(reg)" suffix so it's visually clear they're not primary
+  // module inputs — just signals this netlist references without a
+  // visible driver in the parsed assign statements.
+  implicitSignals.forEach(s=>{
+    const y = rowCenterY(posRow[s]);
+    svg += `<line x1="46" y1="${y}" x2="${colX[0]+24}" y2="${y}" stroke="${IMPLICIT_WIRE}" stroke-width="1" stroke-dasharray="3,2"/>`;
+    svg += `<text x="42" y="${y+3}" font-size="9" fill="${IMPLICIT_TXT}" text-anchor="end" font-family="monospace">${s}</text>`;
+    svg += `<text x="42" y="${y+13}" font-size="7" fill="${IMPLICIT_TXT}" text-anchor="end" font-family="monospace" opacity="0.7">(undriven)</text>`;
+  });
+
+  for(let c=1;c<=maxDepth;c++){
+    columns[c].forEach(g=>{
+      const x = colX[c], y = gateTopY(g.type, posRow[g.id]);
+      const pts = nlGatePoints(g.type, x, y);
+      g.inputs.forEach((inSig, idx)=>{
+        const from = pointFor(inSig);
+        const to = pts.inPts[idx] || pts.inPts[0];
+        const midX = (from[0]+to[0])/2;
+        svg += `<path d="M ${from[0]},${from[1]} L ${midX},${from[1]} L ${midX},${to[1]} L ${to[0]},${to[1]}" fill="none" stroke="${WIRE}" stroke-width="0.8" opacity="0.85"/>`;
+      });
+      svg += nlGateShapeSVG(g.type, x, y);
+    });
+  }
+
+  outputSignals.forEach(s=>{
+    const from = pointFor(s);
+    const y = rowCenterY(posRow[s]);
+    const x = colX[maxDepth+1];
+    const midX = (from[0]+x)/2;
+    svg += `<path d="M ${from[0]},${from[1]} L ${midX},${from[1]} L ${midX},${y} L ${x},${y}" fill="none" stroke="${WIRE}" stroke-width="1"/>`;
+    svg += `<line x1="${x}" y1="${y}" x2="${x+24}" y2="${y}" stroke="${WIRE}" stroke-width="1"/>`;
+    svg += `<text x="${x+28}" y="${y+3}" font-size="9" fill="${TXT}" font-family="monospace" font-weight="bold">${s}</text>`;
+  });
+
+  const par = fitMode ? 'none' : 'xMidYMid meet';
+  return `<svg viewBox="-44 -8 ${totalW+44} ${totalH+8}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px;display:block">${svg}</svg>`;
+}
+
+function setNetlistViewMode(mode){
+  netlistViewMode = mode;
+  renderNetlist();
+  applyFitClass();
+}
+
+function renderNetlist(){
+  const vc = document.getElementById('vcont');
+
+  if(!lastNetlist){
+    vc.innerHTML = `
+    <div style="font-size:11px;color:var(--fg2);margin-bottom:8px">Gate-Level Netlist</div>
+    <div class="app-card">
+      <h4>🔩 No netlist yet</h4>
+      <p>Click <strong>🔩 Synthesize</strong> in the top toolbar to run Yosys on the current design.v
+      and generate a gate-level netlist here.</p>
+    </div>`;
+    return;
+  }
+
+  const stats = lastSynthStats;
+  let statsHtml = '';
+  if(stats){
+    const cellRows = Object.entries(stats.cells_by_type)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:2px 0">
+        <span style="color:var(--fg2)">${_escHtml(k)}</span><span style="color:var(--fg0)">${v}</span></div>`)
+      .join('');
+    statsHtml = `
+    <div class="app-card" style="flex-shrink:0">
+      <h4>📊 Synthesis Stats — top: ${_escHtml(lastSynthTop||'')}</h4>
+      <div style="display:flex;gap:16px;margin:6px 0;font-size:11px">
+        <div><strong style="color:var(--blue)">${stats.total_cells}</strong> cells</div>
+        <div><strong style="color:var(--blue)">${stats.wires}</strong> wires</div>
+        <div><strong style="color:var(--blue)">${stats.wire_bits}</strong> wire bits</div>
+      </div>
+      ${cellRows ? `<div style="font-size:10px;font-family:var(--font-mono);border-top:1px solid var(--bg3);padding-top:6px;margin-top:4px">${cellRows}</div>` : ''}
+    </div>`;
+  }
+
+  const toggleBar = `
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0">
+    <span style="font-size:11px;color:var(--fg2)">Gate-Level Netlist</span>
+    <div style="display:flex;border:1px solid var(--bg3);border-radius:3px;overflow:hidden;margin-left:4px">
+      <button class="btn" style="padding:2px 9px;font-size:10px;border:none;border-radius:0;background:${netlistViewMode==='schematic'?'var(--blue-bg)':'var(--bg2)'};color:${netlistViewMode==='schematic'?'var(--blue)':'var(--fg2)'}"
+        onclick="setNetlistViewMode('schematic')">◈ Schematic</button>
+      <button class="btn" style="padding:2px 9px;font-size:10px;border:none;border-radius:0;background:${netlistViewMode==='code'?'var(--blue-bg)':'var(--bg2)'};color:${netlistViewMode==='code'?'var(--blue)':'var(--fg2)'}"
+        onclick="setNetlistViewMode('code')">📄 Code</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-default" style="padding:2px 8px;font-size:10px" onclick="copyNetlist()">⎘ Copy</button>
+    <button class="btn btn-default" style="padding:2px 8px;font-size:10px" onclick="downloadNetlist()">⬇ Download</button>
+  </div>`;
+
+  if(netlistViewMode === 'code'){
+    vc.innerHTML = `
+    ${toggleBar}
+    ${statsHtml}
+    <div class="app-card" style="padding:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column">
+      <pre style="margin:0;padding:10px;font-size:10px;line-height:1.5;color:var(--fg1);
+        flex:1;overflow:auto;font-family:var(--font-mono)">${_escHtml(lastNetlist)}</pre>
+    </div>`;
+    return;
+  }
+
+  // Schematic mode — parse the netlist into a gate graph and auto-layout
+  const svg = buildNetlistSchematicSVG(lastNetlist, fitModeOn);
+  if(!svg){
+    vc.innerHTML = `
+    ${toggleBar}
+    ${statsHtml}
+    <div class="app-card">
+      <h4>⚠ Couldn't parse gate-level structure</h4>
+      <p>This netlist doesn't match the expected generic-cell <code>assign</code> format.
+      Switch to <strong>📄 Code</strong> view to see the raw netlist.</p>
+    </div>`;
+    return;
+  }
+
+  vc.innerHTML = `
+  ${toggleBar}
+  <div class="fit-stretch" style="min-height:240px;overflow:${fitModeOn?'hidden':'auto'}">${svg}</div>
+  <div style="margin-top:6px;font-size:10px;color:var(--fg3);flex-shrink:0">
+    Auto-generated from the synthesized netlist — gates flow left→right by logic depth. Bubbles mark inverted inputs/outputs.
+  </div>`;
+}
+
+function copyNetlist(){
+  if(!lastNetlist) return;
+  navigator.clipboard.writeText(lastNetlist).then(()=>log('> Netlist copied to clipboard','ok'));
+}
+
+function downloadNetlist(){
+  if(!lastNetlist) return;
+  saveBlob(lastNetlist, (lastSynthTop||'netlist')+'_netlist.v');
+}
+
+function renderApps(){
+  const vc = document.getElementById('vcont');
+
+  if(APPS[curEx]){
+    const cards=APPS[curEx].map(a=>
+      `<div class="app-card"><h4>${a.e} ${a.t}</h4><p>${a.d}</p></div>`
+    ).join('');
+    vc.innerHTML=
+      `<div style="font-size:11px;color:var(--fg2);margin-bottom:8px">Real-World Applications of <strong style="color:var(--blue)">${curEx}</strong></div>${cards}`;
+    return;
+  }
+
+  const p = extractPortsLocal(files.design);
+  const seq = /posedge|negedge/.test(files.design);
+  const comb = /always\s*@\s*\(\s*\*\s*\)|always\s*@\s*\*/.test(files.design);
+  let kindNote = seq
+    ? 'This looks like a <strong>sequential</strong> design (uses posedge/negedge) — common in registers, counters, FSMs, and pipeline stages.'
+    : comb
+    ? 'This looks like a <strong>combinational</strong> design (always @*) — common in ALUs, decoders, multiplexers, and encoders.'
+    : 'This design uses gate-level primitives or continuous assignments — common in standard-cell logic, transistor-level (CMOS) circuits, and structural netlists.';
+
+  vc.innerHTML=`
+  <div style="font-size:11px;color:var(--fg2);margin-bottom:8px">Real-World Applications</div>
+  <div class="app-card">
+    <h4>🔧 Custom Design — ${p.module}</h4>
+    <p>${kindNote}</p>
+    <p style="margin-top:6px">Detected <strong>${p.inputs.length}</strong> input(s) and <strong>${p.outputs.length}</strong> output(s).</p>
+  </div>
+  <div class="app-card">
+    <h4>💡 Curated examples available</h4>
+    <p>Load <strong>ALU</strong>, <strong>Counter</strong>, <strong>MUX</strong>, <strong>D Flip-Flop</strong>, <strong>Traffic FSM</strong>,
+    <strong>UART TX</strong>, or <strong>FIFO 8×8</strong> from the sidebar to see curated real-world application examples
+    for those specific circuit patterns.</p>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SPLIT EDITOR
+// ════════════════════════════════════════════════════════════════
+let splitMode = false;
+
+function toggleSplit(){
+  splitMode = !splitMode;
+  const btn = document.getElementById('split-btn');
+  const single = document.getElementById('ed-single');
+  const split  = document.getElementById('ed-split-pane');
+
+  if(splitMode){
+    single.style.display = 'none';
+    split.style.display  = 'flex';
+    btn.textContent = '⊞ Single';
+    btn.title = 'Switch to single-pane view';
+    _initSplitEditors();
+  } else {
+    split.style.display  = 'none';
+    single.style.display = 'flex';
+    btn.textContent = '⊟ Split';
+    btn.title = 'Toggle split view';
+    if(window._splitDesignEditor && window._splitTbEditor){
+      files.design = window._splitDesignEditor.getValue();
+      files.tb     = window._splitTbEditor.getValue();
+      if(monacoReady){
+        designModel.setValue(files.design);
+        tbModel.setValue(files.tb);
+      }
+    }
+    if(monacoReady) editor.focus();
+  }
+}
+
+function _initSplitEditors(){
+  if(!monacoReady) return;
+
+  const designEl = document.getElementById('monaco-design-split');
+  const tbEl     = document.getElementById('monaco-tb-split');
+
+  if(!window._splitDesignEditor){
+    window._splitDesignEditor = monaco.editor.create(designEl, {
+      model:               designModel,
+      theme:               'verilog-dark',
+      fontFamily:          "'Courier New', monospace",
+      fontSize:            12,
+      lineHeight:          20,
+      minimap:             { enabled: false },
+      automaticLayout:     true,
+      scrollBeyondLastLine:false,
+      renderLineHighlight: 'all',
+      tabSize:             2,
+      insertSpaces:        true,
+      wordWrap:            'off',
+      folding:             true,
+      glyphMargin:         false,
+      lineNumbersMinChars: 3,
+      scrollbar:           { verticalScrollbarSize:8, horizontalScrollbarSize:8 },
+    });
+    window._splitDesignEditor.onDidChangeCursorPosition(()=>{
+      const p = window._splitDesignEditor.getPosition();
+      if(p) document.getElementById('lc-l').textContent = `Ln ${p.lineNumber}`;
+    });
+  } else {
+    designEl.style.display = 'block';
+  }
+
+  if(!window._splitTbEditor){
+    window._splitTbEditor = monaco.editor.create(tbEl, {
+      model:               tbModel,
+      theme:               'verilog-dark',
+      fontFamily:          "'Courier New', monospace",
+      fontSize:            12,
+      lineHeight:          20,
+      minimap:             { enabled: false },
+      automaticLayout:     true,
+      scrollBeyondLastLine:false,
+      renderLineHighlight: 'all',
+      tabSize:             2,
+      insertSpaces:        true,
+      wordWrap:            'off',
+      folding:             true,
+      glyphMargin:         false,
+      lineNumbersMinChars: 3,
+      scrollbar:           { verticalScrollbarSize:8, horizontalScrollbarSize:8 },
+    });
+    window._splitTbEditor.onDidChangeCursorPosition(()=>{
+      const p = window._splitTbEditor.getPosition();
+      if(p) document.getElementById('lc-r').textContent = `Ln ${p.lineNumber}`;
+    });
+    window._splitTbEditor.onDidChangeModelContent(()=>{
+      files.tb = tbModel.getValue();
+      document.getElementById('dot-tb').className='sb-dot mod';
+    });
+  } else {
+    tbEl.style.display = 'block';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FULLSCREEN VIEW
+// ════════════════════════════════════════════════════════════════
+const VIEW_TITLES = {
+  wave:   '≋ Waveform',
+  schema: '◈ Schematic',
+  block:  '⬡ Block Diagram',
+  vcd:    '📈 VCD Waveform',
+  netlist:'🔩 Netlist',
+  apps:   '🌐 Real-World Apps',
+};
+
+function openFullscreen(){
+  const overlay = document.getElementById('fullscreen-overlay');
+  const fsBody  = document.getElementById('fs-body');
+  const fsTitle = document.getElementById('fs-title');
+  const fsBadge = document.getElementById('fs-badge');
+
+  fsTitle.textContent = VIEW_TITLES[curView] || curView;
+  fsBadge.textContent = curEx === 'custom' ? 'custom design' : curEx;
+  fsBadge.className   = 'badge info';
+
+  overlay.style.display = 'flex';
+  applyFsFitClass();
+
+  // Re-render the current view straight into the fullscreen body using
+  // fsFitModeOn (independent of the right panel's own fit-mode setting),
+  // rather than cloning the panel's HTML — clones would carry whatever
+  // preserveAspectRatio the panel happened to be using.
+  _renderIntoFullscreen(curView);
+
+  if(curView === 'vcd' || curView === 'wave'){
+    _startFsWaveCursor(fsBody);
+  }
+}
+
+function _renderIntoFullscreen(v){
+  const fsBody = document.getElementById('fs-body');
+  const par = fsFitModeOn ? 'none' : 'xMidYMid meet';
+
+  if(v === 'wave'){
+    const cfg = getWaveCfg(curEx);
+    const W=390,ROW=26,LBL=76,WAVE=W-LBL-6,H=cfg.sigs.length*ROW+30;
+    fsBody.innerHTML = `<div class="fit-stretch"><svg id="wave-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}">${buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,0)}</svg></div>`;
+  } else if(v === 'schema'){
+    const known = !!SCHEMAS[curEx];
+    const sc = known ? SCHEMAS[curEx] : buildGenericSchema();
+    fsBody.innerHTML = `<div class="fit-stretch"><svg viewBox="-40 0 480 230" preserveAspectRatio="${par}">${sc}</svg></div>`;
+  } else if(v === 'block'){
+    const code=files.design;
+    const p=extractPortsLocal(code);
+    const ins=p.inputs, outs=p.outputs, mod=p.module;
+    const W=390, boxH=Math.max(120,Math.max(ins.length,outs.length)*28+50);
+    const H=boxH+50;
+    const MARGIN = 36;
+    let svg=`<svg viewBox="-${MARGIN} 0 ${W+MARGIN*2} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px">`;
+    svg+=`<defs><marker id="ba2" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto"><polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>`;
+    svg+=`<rect x="130" y="20" width="130" height="${boxH}" rx="5" fill="#0c1830" stroke="var(--blue)" stroke-width="2"/>`;
+    svg+=`<text x="195" y="${20+boxH/2-8}" font-size="14" fill="var(--blue)" text-anchor="middle" font-weight="bold">${mod}</text>`;
+    const langLabel=document.getElementById('lang').value==='systemverilog'?'SV':'Verilog';
+    svg+=`<text x="195" y="${20+boxH/2+10}" font-size="9" fill="var(--fg3)" text-anchor="middle">${langLabel}</text>`;
+    svg+=`<text x="195" y="${20+boxH/2+24}" font-size="9" fill="var(--fg3)" text-anchor="middle">${code.split('\n').length} lines</text>`;
+    ins.slice(0,8).forEach((nm,i)=>{
+      const y=36+i*28;
+      svg+=`<line x1="14" y1="${y}" x2="128" y2="${y}" stroke="var(--green)" stroke-width="1.5" marker-end="url(#ba2)"/>`;
+      svg+=`<text x="10" y="${y+3}" font-size="9" fill="var(--green)" text-anchor="end">${nm}</text>`;
+    });
+    outs.slice(0,8).forEach((nm,i)=>{
+      const y=36+i*28;
+      svg+=`<line x1="262" y1="${y}" x2="376" y2="${y}" stroke="var(--red)" stroke-width="1.5" marker-end="url(#ba2)"/>`;
+      svg+=`<text x="380" y="${y+3}" font-size="9" fill="var(--red)">${nm}</text>`;
+    });
+    svg+='</svg>';
+    fsBody.innerHTML = `<div class="fit-stretch">${svg}</div>`;
+  } else if(v === 'vcd'){
+    if(!lastVCD){
+      fsBody.innerHTML = `<div style="color:var(--fg2);font-size:13px;padding:40px;text-align:center">No VCD data yet. Run ⚡ Simulate first.</div>`;
+      return;
+    }
+    const {signals, timeUnit} = parseVCD(lastVCD);
+    const names = Object.keys(signals).slice(0,10);
+    let maxT=0;
+    names.forEach(n=>{const v2=signals[n];if(v2.vals.length) maxT=Math.max(maxT,v2.vals[v2.vals.length-1].t);});
+    maxT=maxT||1;
+    const W=390,ROW=26,LBL=80,WAVE=W-LBL-6,H=names.length*ROW+32;
+    let svg=`<svg id="wave-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px;display:block">`;
+    svg+=`<line x1="${LBL}" y1="20" x2="${W-4}" y2="20" stroke="var(--bg3)" stroke-width="0.5"/>`;
+    for(let i=0;i<=4;i++){
+      const x=LBL+i*(WAVE/4), t=Math.round(maxT*i/4);
+      svg+=`<text x="${x}" y="13" font-size="9" fill="var(--fg3)" text-anchor="middle">${t}${timeUnit}</text>`;
+      svg+=`<line x1="${x}" y1="16" x2="${x}" y2="22" stroke="var(--bg3)" stroke-width="0.5"/>`;
+    }
+    names.forEach((n,i)=>{
+      const sig=signals[n];
+      const y=30+i*ROW,hi=y+2,lo=y+ROW-7,mid=y+ROW/2-1;
+      const col=sig.width>1?'var(--cyan)':'var(--green)';
+      svg+=`<text x="${LBL-4}" y="${mid+3}" font-size="10" fill="var(--fg2)" text-anchor="end">${n.slice(0,10)}</text>`;
+      if(sig.width===1){
+        let px=LBL,pv=sig.vals[0]?.v||'0';
+        sig.vals.forEach(({t,v})=>{
+          const x=Math.min(LBL+Math.round((t/maxT)*WAVE),W-6);
+          const cy=pv==='1'?hi:lo, ny=v==='1'?hi:lo;
+          svg+=`<line x1="${px}" y1="${cy}" x2="${x}" y2="${cy}" stroke="${col}" stroke-width="1.5"/>`;
+          if(cy!==ny) svg+=`<line x1="${x}" y1="${cy}" x2="${x}" y2="${ny}" stroke="${col}" stroke-width="1.5"/>`;
+          px=x; pv=v;
+        });
+        svg+=`<line x1="${px}" y1="${pv==='1'?hi:lo}" x2="${W-6}" y2="${pv==='1'?hi:lo}" stroke="${col}" stroke-width="1.5"/>`;
+      } else {
+        let px=LBL,pv=sig.vals[0]?.v||'x'.repeat(sig.width);
+        sig.vals.forEach(({t,v})=>{
+          const x=Math.min(LBL+Math.round((t/maxT)*WAVE),W-6);
+          if(x>px){
+            svg+=`<polygon points="${px+2},${hi} ${x-2},${hi} ${x-2},${lo} ${px+2},${lo}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8"/>`;
+            const segW=x-px;
+            if(segW>10) svg+=`<text x="${(px+x)/2}" y="${lo-1}" font-size="${segW<16?6.5:8}" fill="${col}" text-anchor="middle">${busLabel(pv)}</text>`;
+          }
+          px=x; pv=v;
+        });
+        if(W-6>px){
+          svg+=`<polygon points="${px+2},${hi} ${W-6},${hi} ${W-6},${lo} ${px+2},${lo}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8"/>`;
+          const segW=W-6-px;
+          if(segW>10) svg+=`<text x="${(px+W-6)/2}" y="${lo-1}" font-size="${segW<16?6.5:8}" fill="${col}" text-anchor="middle">${busLabel(pv)}</text>`;
+        }
+      }
+    });
+    svg+='</svg>';
+    fsBody.innerHTML = `<div class="fit-stretch">${svg}</div>`;
+  } else if(v === 'netlist'){
+    if(!lastNetlist){
+      fsBody.innerHTML = `<div style="color:var(--fg2);font-size:13px;padding:40px;text-align:center">No netlist yet. Run 🔩 Synthesize first.</div>`;
+      return;
+    }
+    if(netlistViewMode === 'code'){
+      fsBody.innerHTML = `<pre style="margin:0;padding:10px;font-size:11px;line-height:1.5;color:var(--fg1);height:100%;overflow:auto;font-family:var(--font-mono)">${_escHtml(lastNetlist)}</pre>`;
+    } else {
+      const svg = buildNetlistSchematicSVG(lastNetlist, fsFitModeOn);
+      fsBody.innerHTML = svg ? `<div class="fit-stretch">${svg}</div>` : `<div style="color:var(--fg2);padding:40px;text-align:center">Could not parse netlist structure.</div>`;
+    }
+  } else {
+    // apps / text content — just clone current panel HTML, fit-mode doesn't apply
+    const vcont = document.getElementById('vcont');
+    fsBody.innerHTML = vcont.innerHTML;
+  }
+}
+
+function closeFullscreen(){
+  document.getElementById('fullscreen-overlay').style.display = 'none';
+  _stopFsAnim();
+}
+
+let _fsAnimId = null;
+function _stopFsAnim(){ if(_fsAnimId){ cancelAnimationFrame(_fsAnimId); _fsAnimId=null; } }
+
+function _startFsWaveCursor(fsBody){
+  const svg = fsBody.querySelector('svg[id="wave-svg"], svg');
+  if(!svg) return;
+  const vb = svg.viewBox?.baseVal;
+  if(!vb) return;
+  const W = vb.width, H = vb.height;
+  let x = 80;
+  _stopFsAnim();
+  (function tick(){
+    x = (x + 0.6);
+    if(x > W - 4) x = 80;
+    const old = svg.getElementById('fs-cursor');
+    if(old) old.remove();
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('id','fs-cursor');
+    line.setAttribute('x1', x); line.setAttribute('y1', '16');
+    line.setAttribute('x2', x); line.setAttribute('y2', H-4);
+    line.setAttribute('stroke','var(--yellow)');
+    line.setAttribute('stroke-width','1');
+    line.setAttribute('stroke-dasharray','4,3');
+    line.setAttribute('opacity','0.7');
+    svg.appendChild(line);
+    _fsAnimId = requestAnimationFrame(tick);
+  })();
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){
+    const ov = document.getElementById('fullscreen-overlay');
+    if(ov.style.display !== 'none'){ closeFullscreen(); return; }
+  }
+  if(e.key === 'F11'){
+    e.preventDefault();
+    const ov = document.getElementById('fullscreen-overlay');
+    if(ov.style.display === 'none') openFullscreen(); else closeFullscreen();
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey){
+    if(e.key==='Enter'){e.preventDefault();runCompile();}
+    if(e.key==='\''){e.preventDefault();runSimulate();}
+    if(e.key==='g'){e.preventDefault();generateTB();}
+    if(e.key==='s'){e.preventDefault();showSaveModal();}
+    if(e.key==='d'){e.preventDefault();showAIDesignModal();}
+    if(e.key==='y'){e.preventDefault();runSynthesize();}
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+//  CLOSE MODAL ON OVERLAY CLICK
+// ════════════════════════════════════════════════════════════════
+document.getElementById('save-modal').addEventListener('click',function(e){
+  if(e.target===this) closeSaveModal();
+});
+document.getElementById('ai-design-modal').addEventListener('click',function(e){
+  if(e.target===this) closeAIDesignModal();
+});
+document.getElementById('ai-design-preview-modal').addEventListener('click',function(e){
+  if(e.target===this) closeAIDesignPreview();
+});
+document.getElementById('ai-design-name').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){ e.preventDefault(); doGenerateDesign(); }
+});
+
+</script>
+</body>
+</html>
