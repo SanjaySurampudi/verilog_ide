@@ -101,13 +101,8 @@ select option{background:var(--bg1)}
   background:var(--bg0);color:var(--fg2);font-size:12px;z-index:5;gap:8px}
 
 /* ── console ── */
-.console{height:165px;min-height:60px;max-height:75vh;background:var(--bg0);border-top:1px solid var(--bg3);
-  flex-shrink:0;display:flex;flex-direction:column;position:relative}
-.console-resize-handle{position:absolute;top:-4px;left:0;right:0;height:8px;cursor:ns-resize;z-index:10}
-.console-resize-handle:hover,.console-resize-handle.dragging{background:var(--blue);opacity:0.35}
-.console-resize-handle::after{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);
-  width:36px;height:3px;border-radius:2px;background:var(--bg3)}
-.console-resize-handle:hover::after,.console-resize-handle.dragging::after{background:var(--blue)}
+.console{height:165px;background:var(--bg0);border-top:1px solid var(--bg3);
+  flex-shrink:0;display:flex;flex-direction:column}
 .console-hdr{font-size:11px;color:var(--fg2);padding:3px 10px;background:var(--bg1);
   border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:7px;flex-shrink:0}
 .console-out{flex:1;overflow-y:auto;padding:5px 10px;font-size:11px;line-height:1.65;
@@ -121,36 +116,12 @@ select option{background:var(--bg1)}
 /* ── right panel ── */
 .rpanel{width:410px;display:flex;flex-direction:column;flex-shrink:0;
   border-left:1px solid var(--bg3);overflow:hidden}
-.vtabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--bg3);flex-shrink:0;align-items:center;min-width:0}
-.vtab-scroll{display:flex;flex-shrink:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
-.vtab-scroll::-webkit-scrollbar{height:3px}
-.vtab{font-size:10.5px;padding:6px 8px;cursor:pointer;color:var(--fg2);white-space:nowrap;flex-shrink:0;
+.vtabs{display:flex;background:var(--bg1);border-bottom:1px solid var(--bg3);flex-shrink:0;align-items:center}
+.vtab{font-size:11px;padding:6px 10px;cursor:pointer;color:var(--fg2);
   border-right:1px solid var(--bg3);border-top:2px solid transparent;white-space:nowrap}
 .vtab.active{color:var(--fg0);background:var(--bg0);border-top-color:var(--blue)}
 .vtab:hover:not(.active){color:var(--fg1)}
 .vcont{flex:1;overflow:auto;padding:10px}
-.vcont.fit-mode{display:flex;flex-direction:column;overflow:hidden;padding:8px}
-.vcont.fit-mode .fit-stretch{flex:1;min-height:0;display:flex;flex-direction:column;
-  transform:scale(var(--fit-scale,1));transform-origin:center center;transition:transform .12s ease}
-.vcont.fit-mode .fit-stretch svg{flex:1;width:100%;height:100%;min-height:0}
-.fit-toggle-btn{font-size:10px;padding:2px 8px;background:var(--bg2);border:1px solid var(--bg3);
-  color:var(--fg2);border-radius:3px;cursor:pointer;white-space:nowrap}
-.fit-toggle-btn:hover{border-color:var(--blue);color:var(--blue)}
-.fit-toggle-btn.active{border-color:var(--green);color:var(--green);background:var(--green-bg)}
-
-/* zoom bar — slider to scale down fit-mode diagrams (shown only when fit is on) */
-.zoom-bar{display:flex;align-items:center;gap:7px;padding:4px 10px;background:var(--bg1);
-  border-bottom:1px solid var(--bg3);flex-shrink:0}
-.zoom-bar #zoom-pct{font-size:10px;color:var(--fg2);width:32px;flex-shrink:0;font-variant-numeric:tabular-nums}
-.zoom-bar input[type="range"]{flex:1;height:3px;-webkit-appearance:none;appearance:none;
-  background:var(--bg3);border-radius:2px;outline:none;cursor:pointer}
-.zoom-bar input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
-  width:11px;height:11px;border-radius:50%;background:var(--blue);cursor:pointer;border:none}
-.zoom-bar input[type="range"]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;
-  background:var(--blue);cursor:pointer;border:none}
-.zoom-reset-btn{font-size:10px;padding:1px 6px;background:var(--bg2);border:1px solid var(--bg3);
-  color:var(--fg2);border-radius:3px;cursor:pointer;flex-shrink:0;line-height:1.4}
-.zoom-reset-btn:hover{border-color:var(--blue);color:var(--blue)}
 
 /* ── fullscreen overlay ── */
 .fullscreen-overlay{
@@ -163,11 +134,6 @@ select option{background:var(--bg1)}
 }
 .fullscreen-title{font-size:13px;color:var(--fg1);font-weight:600}
 .fullscreen-body{flex:1;overflow:auto;padding:14px;}
-.fullscreen-body.fit-mode{display:flex;flex-direction:column;overflow:hidden;padding:10px}
-.fullscreen-body.fit-mode .fit-stretch{flex:1;min-height:0;display:flex;flex-direction:column;
-  transform:scale(var(--fit-scale,1));transform-origin:center center;transition:transform .12s ease}
-.fullscreen-body.fit-mode .fit-stretch svg{flex:1;width:100%;height:100%;min-height:0}
-.fullscreen-body.fit-mode pre{flex:1;min-height:0}
 
 /* ── split editor ── */
 .ed-split{display:flex;flex:1;overflow:hidden;min-height:0;gap:0}
@@ -225,12 +191,6 @@ select option{background:var(--bg1)}
   color:var(--fg1);font-family:var(--font-mono);font-size:12px;padding:6px 8px;
   border-radius:var(--radius);margin-bottom:8px;outline:none}
 .modal input:focus,.modal select:focus{border-color:var(--blue)}
-.modal textarea{width:100%;background:var(--bg2);border:1px solid var(--bg3);
-  color:var(--fg1);font-family:var(--font-mono);font-size:12px;padding:6px 8px;
-  border-radius:var(--radius);margin-bottom:8px;outline:none;resize:vertical;min-height:60px}
-.modal textarea:focus{border-color:var(--blue)}
-.modal-wide{max-width:760px}
-.modal label{display:block;font-size:10px;color:var(--fg3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
 
 /* ── scrollbars ── */
@@ -252,76 +212,8 @@ select option{background:var(--bg1)}
   white-space:nowrap;z-index:50;pointer-events:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-
-<!-- ═══════════════════════════════════ FIREBASE AUTH ═══════════════════════════════════ -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<style>
-/* ── Auth overlay ── */
-#auth-overlay{
-  position:fixed;inset:0;z-index:9999;background:var(--bg0);
-  display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
-}
-#auth-overlay.hidden{display:none}
-.auth-box{
-  width:320px;background:var(--bg1);border:1px solid var(--bg3);border-radius:6px;
-  padding:28px 26px;display:flex;flex-direction:column;gap:12px;
-}
-.auth-box h1{font-size:16px;color:var(--blue);letter-spacing:1px;text-align:center;margin-bottom:4px}
-.auth-box h1 span{color:var(--fg2);font-weight:400}
-.auth-tabs{display:flex;gap:4px;margin-bottom:4px}
-.auth-tab{flex:1;text-align:center;padding:6px 0;background:var(--bg2);border:1px solid var(--bg3);
-  border-radius:4px;cursor:pointer;color:var(--fg2);font-size:12px}
-.auth-tab.active{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
-.auth-box input{
-  background:var(--bg2);border:1px solid var(--bg3);color:var(--fg0);padding:8px 10px;
-  border-radius:4px;font-family:var(--font-mono);font-size:13px;outline:none;
-}
-.auth-box input:focus{border-color:var(--blue)}
-.auth-box button{
-  padding:9px 0;border-radius:4px;border:1px solid var(--bg3);cursor:pointer;
-  font-family:var(--font-mono);font-size:13px;font-weight:600;
-}
-.auth-submit{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
-.auth-submit:hover{filter:brightness(1.15)}
-.auth-google{background:var(--bg2);color:var(--fg0);display:flex;align-items:center;justify-content:center;gap:8px}
-.auth-google:hover{background:var(--bg3)}
-.auth-divider{display:flex;align-items:center;gap:8px;color:var(--fg3);font-size:11px;margin:2px 0}
-.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--bg3)}
-#auth-error{color:var(--red);font-size:11px;min-height:14px}
-#auth-toggle-mode{color:var(--fg2);font-size:11px;text-align:center;cursor:pointer}
-#auth-toggle-mode span{color:var(--blue)}
-.user-badge{display:flex;align-items:center;gap:6px;color:var(--fg2);font-size:12px}
-.user-badge img{width:20px;height:20px;border-radius:50%}
-#logout-btn{background:var(--bg2);color:var(--fg2);border:1px solid var(--bg3);border-radius:4px;
-  padding:4px 8px;font-size:11px;cursor:pointer;font-family:var(--font-mono)}
-#logout-btn:hover{background:var(--bg3);color:var(--fg0)}
-</style>
 </head>
 <body>
-
-<!-- ═══════════════════════════════════ AUTH OVERLAY ═══════════════════════════════════ -->
-<div id="auth-overlay">
-  <div class="auth-box">
-    <h1>⬡ Verilog<span>IDE</span></h1>
-    <div class="auth-tabs">
-      <div class="auth-tab active" id="tab-signin" onclick="setAuthMode('signin')">Sign In</div>
-      <div class="auth-tab" id="tab-signup" onclick="setAuthMode('signup')">Sign Up</div>
-    </div>
-    <button class="auth-google" onclick="signInWithGoogle()">
-      <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4c-7.6 0-14.1 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 14-5.4l-6.5-5.4C29.4 34.9 26.8 36 24 36c-5.3 0-9.8-3.4-11.4-8.1l-6.5 5C9.8 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.7 2-1.9 3.7-3.5 5l6.5 5.4C41.6 35.6 44 30.2 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
-      Continue with Google
-    </button>
-    <div class="auth-divider">or</div>
-    <input type="email" id="auth-email" placeholder="Email" autocomplete="email">
-    <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
-    <div id="auth-error"></div>
-    <button class="auth-submit" id="auth-submit-btn" onclick="submitEmailAuth()">Sign In</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════ APP CONTENT (hidden until logged in) ═══════════════════════════════════ -->
-<div id="app-content" style="display:none">
 
 <!-- ═══════════════════════════════════ TOP BAR ═══════════════════════════════════ -->
 <div class="topbar">
@@ -330,10 +222,7 @@ select option{background:var(--bg1)}
   <button class="btn btn-green" onclick="runCompile()" data-tip="Syntax check with Icarus Verilog">▶ Compile</button>
   <button class="btn btn-blue"  onclick="runSimulate()" data-tip="Compile + run vvp simulation">⚡ Simulate</button>
   <button class="btn btn-purple" onclick="generateTB()" data-tip="AI-generate testbench via Claude">✦ AI Testbench</button>
-  <button class="btn btn-purple" onclick="showAIDesignModal()" data-tip="AI-generate a new design from a prompt">⚙ AI Design</button>
-  <button class="btn btn-default" id="ai-key-btn" onclick="showAIKeyModal()" data-tip="Use your own AI API key for AI Testbench / AI Design">🔑 AI Key</button>
   <button class="btn btn-yellow" onclick="formatCode()" data-tip="Auto-format code indentation">⇌ Format</button>
-  <button class="btn btn-default" onclick="runSynthesize()" data-tip="Synthesize design.v to a gate-level netlist via Yosys">🔩 Synthesize</button>
   <button class="btn btn-default" onclick="showSaveModal()" data-tip="Save to local file">💾 Save</button>
   <button class="btn btn-default" onclick="triggerLoad()" data-tip="Load .v file from disk">📂 Load</button>
   <input type="file" id="file-input" accept=".v,.sv" style="display:none" onchange="loadFile(event)">
@@ -342,8 +231,6 @@ select option{background:var(--bg1)}
 
   <span id="be-pill" class="dead">● backend offline</span>
   <div class="status"><span class="sdot" id="sdot"></span><span id="stext">Ready</span></div>
-  <div class="user-badge" id="user-badge"></div>
-  <button id="logout-btn" onclick="logOut()">Log out</button>
 </div>
 
 <!-- ═══════════════════════════════════ MAIN ═══════════════════════════════════ -->
@@ -444,8 +331,7 @@ select option{background:var(--bg1)}
     </div>
 
     <!-- CONSOLE -->
-    <div class="console" id="console-panel">
-      <div class="console-resize-handle" id="console-resize-handle" title="Drag to resize"></div>
+    <div class="console">
       <div class="console-hdr">
         <span>Console</span>
         <span class="badge" id="cbadge">idle</span>
@@ -456,34 +342,22 @@ select option{background:var(--bg1)}
       <div class="console-out" id="cout">
         <div class="c-muted">// VerilogIDE v2.0 — Icarus Verilog 12 + Claude AI</div>
         <div class="c-muted">// ▶ Compile = syntax check   ⚡ Simulate = full run + VCD   ✦ AI = auto testbench</div>
-        <div class="c-muted">// ⚙ AI Design = generate RTL from a prompt   🔩 Synthesize = Yosys gate-level netlist</div>
         <div class="c-muted">// Start backend:  uvicorn server:app --port 8001</div>
       </div>
     </div>
-
   </div>
 
   <!-- RIGHT PANEL -->
   <div class="rpanel">
     <div class="vtabs">
-      <div class="vtab-scroll">
-        <div class="vtab active" id="vtab-wave"   onclick="switchView('wave')">≋ Wave</div>
-        <div class="vtab"        id="vtab-schema" onclick="switchView('schema')">◈ Schem</div>
-        <div class="vtab"        id="vtab-block"  onclick="switchView('block')">⬡ Block</div>
-        <div class="vtab"        id="vtab-vcd"    onclick="switchView('vcd')">📈 VCD</div>
-        <div class="vtab"        id="vtab-netlist" onclick="switchView('netlist')">🔩 Netlist</div>
-        <div class="vtab"        id="vtab-apps"   onclick="switchView('apps')">🌐 Apps</div>
-      </div>
+      <div class="vtab active" id="vtab-wave"   onclick="switchView('wave')">≋ Waveform</div>
+      <div class="vtab"        id="vtab-schema" onclick="switchView('schema')">◈ Schematic</div>
+      <div class="vtab"        id="vtab-block"  onclick="switchView('block')">⬡ Block</div>
+      <div class="vtab"        id="vtab-vcd"    onclick="switchView('vcd')">📈 VCD</div>
+      <div class="vtab"        id="vtab-apps"   onclick="switchView('apps')">🌐 Apps</div>
       <div class="spacer"></div>
-      <button class="btn btn-default fit-toggle-btn" id="fit-btn" style="padding:2px 6px;font-size:10px;margin:2px 2px;border-radius:3px;flex-shrink:0"
-        onclick="toggleFitMode()" title="Fit diagram to panel">⛶</button>
-      <button class="btn btn-default" style="padding:2px 6px;font-size:11px;margin:2px 4px;border-radius:3px;flex-shrink:0"
-        onclick="openFullscreen()" title="Fullscreen view (F11)">⛶⛶</button>
-    </div>
-    <div class="zoom-bar" id="zoom-bar" style="display:none">
-      <span id="zoom-pct">100%</span>
-      <input type="range" id="zoom-slider" min="40" max="100" value="100" step="5" oninput="onZoomSlider(this.value)">
-      <button class="zoom-reset-btn" onclick="resetZoom()" title="Reset to 100%">↺</button>
+      <button class="btn btn-default" style="padding:2px 8px;font-size:11px;margin:2px 4px;border-radius:3px"
+        onclick="openFullscreen()" title="Fullscreen view (F11)">⛶</button>
     </div>
     <div class="vcont" id="vcont"></div>
   </div>
@@ -494,13 +368,7 @@ select option{background:var(--bg1)}
   <div class="fullscreen-header">
     <span class="fullscreen-title" id="fs-title">Waveform</span>
     <span class="badge info" id="fs-badge"></span>
-    <div class="zoom-bar" id="fs-zoom-bar" style="display:none;background:transparent;border:none;padding:0;margin-left:14px;width:180px">
-      <span id="fs-zoom-pct">40%</span>
-      <input type="range" id="fs-zoom-slider" min="40" max="100" value="40" step="5" oninput="onFsZoomSlider(this.value)">
-      <button class="zoom-reset-btn" onclick="resetFsZoom()" title="Reset to 100%">↺</button>
-    </div>
     <div class="spacer"></div>
-    <button class="btn btn-default fit-toggle-btn active" id="fs-fit-btn" style="padding:3px 10px;font-size:11px" onclick="toggleFsFitMode()">⛶ Fit Screen</button>
     <button class="btn btn-default" style="padding:3px 10px;font-size:11px" onclick="closeFullscreen()">✕ Close (Esc)</button>
   </div>
   <div class="fullscreen-body" id="fs-body"></div>
@@ -523,78 +391,15 @@ select option{background:var(--bg1)}
   </div>
 </div>
 
-<!-- AI DESIGN MODAL -->
-<div id="ai-design-modal" class="modal-overlay" style="display:none">
-  <div class="modal">
-    <h3>⚙ AI Design Generator</h3>
-    <label for="ai-design-name">design "name"</label>
-    <input type="text" id="ai-design-name" placeholder='e.g. 8-bit ripple carry adder' autocomplete="off">
-    <label for="ai-design-spec">specifications (optional)</label>
-    <textarea id="ai-design-spec" placeholder="e.g. parameterized width, synchronous active-high reset, carry-out output..."></textarea>
-    <div class="modal-btns">
-      <button class="btn btn-default" onclick="closeAIDesignModal()">Cancel</button>
-      <button class="btn btn-purple" onclick="doGenerateDesign()" id="ai-design-go-btn">✦ Generate</button>
-    </div>
-  </div>
-</div>
-
-<!-- AI KEY SETTINGS MODAL -->
-<div id="ai-key-modal" class="modal-overlay" style="display:none">
-  <div class="modal">
-    <h3>🔑 Your AI API Key</h3>
-    <div class="c-muted" style="margin-bottom:10px;font-size:12px;line-height:1.5">
-      Optional — use your own key with AI Testbench / AI Design instead of the
-      shared server key. Your key is sent from your browser straight to this
-      backend for a single request and is <strong>not saved on the server</strong>;
-      it's stored only in this browser (localStorage) so you don't have to
-      retype it every time.
-    </div>
-    <label for="ai-key-provider">provider</label>
-    <select id="ai-key-provider">
-      <option value="gemini">Google Gemini (aistudio.google.com — free)</option>
-      <option value="groq">Groq (console.groq.com — free)</option>
-      <option value="nvidia">NVIDIA NIM (build.nvidia.com — free)</option>
-      <option value="openrouter">OpenRouter (openrouter.ai — free models)</option>
-      <option value="anthropic">Anthropic Claude (console.anthropic.com — paid)</option>
-    </select>
-    <label for="ai-key-value">api key</label>
-    <input type="password" id="ai-key-value" placeholder="Paste your API key" autocomplete="off">
-    <div class="c-muted" id="ai-key-status" style="margin-top:6px;font-size:12px"></div>
-    <div class="modal-btns">
-      <button class="btn btn-default" onclick="clearAIKey()">Clear key</button>
-      <button class="btn btn-default" onclick="testAIKeyBtn()" id="ai-key-test-btn">Test key</button>
-      <button class="btn btn-default" onclick="closeAIKeyModal()">Cancel</button>
-      <button class="btn btn-purple" onclick="saveAIKey()" id="ai-key-save-btn">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- AI DESIGN PREVIEW MODAL -->
-<div id="ai-design-preview-modal" class="modal-overlay" style="display:none">
-  <div class="modal modal-wide">
-    <h3>⚙ Generated Design <span class="badge info" id="ai-design-source-badge" style="margin-left:6px"></span></h3>
-    <textarea id="ai-design-preview-code" style="min-height:340px;font-size:11px;white-space:pre" spellcheck="false"></textarea>
-    <div class="modal-btns">
-      <button class="btn btn-default" onclick="closeAIDesignPreview()">Discard</button>
-      <button class="btn btn-purple" onclick="insertAIDesign()">⬇ Insert into design.v</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // ════════════════════════════════════════════════════════════════
 //  CONSTANTS & STATE
 // ════════════════════════════════════════════════════════════════
-// Local backend (uvicorn server:app --reload --port 8001). Swap back to the
-// Render URL below if you deploy instead of running locally.
 const API = 'https://verilog-ide-backend.onrender.com';
-// const API = 'https://verilog-ide-backend.onrender.com';
 let backendLive = false;
 let curTab = 'design', curView = 'wave', curEx = 'alu';
 let animId = null, waveAnimOn = false;
 let lastVCD = null, lastPorts = null;
-let fitModeOn = true;     // right-panel fit-to-screen (default ON, fill width+height)
-let fsFitModeOn = true;   // fullscreen fit-to-screen (default ON, fill width+height)
 
 const files = {
   design: '',
@@ -938,13 +743,16 @@ module tb_fifo;
 endmodule`}
 };
 
-// ── Map module-name → example key ──
+// ── Map module-name → example key, so custom code can be detected ──
 const EX_MODULE_MAP = {};
 for(const [key, ex] of Object.entries(EX)){
   const m = ex.d.match(/\bmodule\s+(\w+)/);
   if(m) EX_MODULE_MAP[m[1]] = key;
 }
 
+// Re-detect curEx from the live design code. If the module name matches
+// a built-in example, switch to its curated views; otherwise mark as
+// 'custom' so Schematic/Waveform/Apps auto-generate from the user's ports.
 let _detectTimer = null;
 function detectCurEx(){
   const m = files.design.match(/\bmodule\s+(\w+)/);
@@ -957,71 +765,9 @@ function detectCurEx(){
 }
 
 // ════════════════════════════════════════════════════════════════
-//  CONSOLE RESIZE (drag handle on top edge)
-// ════════════════════════════════════════════════════════════════
-(function initConsoleResize(){
-  const panel  = document.getElementById('console-panel');
-  const handle = document.getElementById('console-resize-handle');
-  if(!panel || !handle) return;
-
-  // Restore last-used height for this tab session so it persists across
-  // example loads / re-renders but resets on a fresh page load.
-  try{
-    const saved = sessionStorage.getItem('verilogide_console_h');
-    if(saved) panel.style.height = saved + 'px';
-  }catch(e){}
-
-  let dragging = false, startY = 0, startH = 0;
-
-  function onPointerDown(e){
-    dragging = true;
-    startY = e.clientY;
-    startH = panel.getBoundingClientRect().height;
-    handle.classList.add('dragging');
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-    e.preventDefault();
-  }
-  function onPointerMove(e){
-    if(!dragging) return;
-    // Dragging UP (negative deltaY) should INCREASE console height.
-    const deltaY = e.clientY - startY;
-    let newH = startH - deltaY;
-    const minH = 60;
-    const maxH = window.innerHeight * 0.75;
-    newH = Math.max(minH, Math.min(maxH, newH));
-    panel.style.height = newH + 'px';
-  }
-  function onPointerUp(){
-    if(!dragging) return;
-    dragging = false;
-    handle.classList.remove('dragging');
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-    try{
-      sessionStorage.setItem('verilogide_console_h', Math.round(panel.getBoundingClientRect().height));
-    }catch(e){}
-  }
-
-  handle.addEventListener('mousedown', onPointerDown);
-  window.addEventListener('mousemove', onPointerMove);
-  window.addEventListener('mouseup', onPointerUp);
-
-  // Touch support
-  handle.addEventListener('touchstart', e=>onPointerDown(e.touches[0]), {passive:false});
-  window.addEventListener('touchmove', e=>{ if(dragging){ onPointerMove(e.touches[0]); e.preventDefault(); } }, {passive:false});
-  window.addEventListener('touchend', onPointerUp);
-
-  // Double-click handle to reset to default height
-  handle.addEventListener('dblclick', ()=>{
-    panel.style.height = '165px';
-    try{ sessionStorage.setItem('verilogide_console_h', 165); }catch(e){}
-  });
-})();
-
-// ════════════════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════════════════
+// Pre-populate file contents so other functions have data before Monaco loads
 files.design = EX.alu.d;
 files.tb     = EX.alu.t;
 checkBackend();
@@ -1030,6 +776,7 @@ setInterval(checkBackend, 7000);
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
 require(['vs/editor/editor.main'], function(){
 
+  // ── Register Verilog / SystemVerilog language ─────────────────
   monaco.languages.register({ id: 'verilog' });
 
   monaco.languages.setLanguageConfiguration('verilog', {
@@ -1056,6 +803,7 @@ require(['vs/editor/editor.main'], function(){
     'supply1','table','task','time','tran','tranif0','tranif1','tri','tri0','tri1','triand',
     'trior','trireg','unsigned','vectored','wait','wand','weak0','weak1','while','wire','wor',
     'xnor','xor',
+    // SystemVerilog
     'always_comb','always_ff','always_latch','alias','assert','assume','before','bind','bins',
     'binsof','bit','break','byte','chandle','class','clocking','const','constraint','context',
     'continue','cover','covergroup','coverpoint','cross','dist','do','endclass','endclocking',
@@ -1074,34 +822,47 @@ require(['vs/editor/editor.main'], function(){
     defaultToken: '',
     tokenPostfix: '.v',
     keywords: VLOG_KEYWORDS,
+
     operators: [
       '=','<=','>=','==','!=','===','!==','&&','||','!','&','|','^','~','^~','~^',
       '<<','>>','<<<','>>>','+','-','*','/','%','**','?',':','->','<->'
     ],
+
     symbols: /[=><!~?:&|+\-*\/\^%]+/,
+
     tokenizer: {
       root: [
+        // System tasks / functions  $display, $finish, etc.
         [/\$[a-zA-Z_][\w$]*/, 'predefined'],
+        // Compiler directives  `timescale, `define, etc.
         [/`[a-zA-Z_][\w]*/, 'keyword.directive'],
+        // Identifiers and keywords
         [/[a-zA-Z_][\w$]*/, {
           cases: { '@keywords': 'keyword', '@default': 'identifier' }
         }],
+        // Sized numbers: 4'b1010, 8'hFF, 16'd255, 3'b0xx
         [/\d+'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ_]+/, 'number.hex'],
+        // Plain numbers (decimal / real)
         [/\d+\.\d+([eE][\-+]?\d+)?/, 'number.float'],
         [/\d+/, 'number'],
+        // Strings
         [/"([^"\\]|\\.)*"/, 'string'],
+        // Whitespace
         { include: '@whitespace' },
+        // Delimiters and operators
         [/[{}()\[\]]/, '@brackets'],
         [/[;,.]/, 'delimiter'],
         [/@symbols/, {
           cases: { '@operators': 'operator', '@default': '' }
         }],
       ],
+
       whitespace: [
         [/[ \t\r\n]+/, 'white'],
         [/\/\*/, 'comment', '@comment'],
         [/\/\/.*$/, 'comment'],
       ],
+
       comment: [
         [/[^\/*]+/, 'comment'],
         [/\*\//, 'comment', '@pop'],
@@ -1110,9 +871,11 @@ require(['vs/editor/editor.main'], function(){
     },
   });
 
+  // ── Create models for both files ───────────────────────────────
   designModel = monaco.editor.createModel(files.design, 'verilog');
   tbModel     = monaco.editor.createModel(files.tb,     'verilog');
 
+  // ── Create the editor instance ─────────────────────────────────
   editor = monaco.editor.create(document.getElementById('monaco-container'), {
     model: designModel,
     theme: 'vs-dark',
@@ -1134,6 +897,7 @@ require(['vs/editor/editor.main'], function(){
     scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
   });
 
+  // Custom dark theme tuned to match the IDE palette
   monaco.editor.defineTheme('verilog-dark', {
     base: 'vs-dark', inherit: true,
     rules: [
@@ -1159,14 +923,17 @@ require(['vs/editor/editor.main'], function(){
   });
   monaco.editor.setTheme('verilog-dark');
 
+  // ── Wire up events ───────────────────────────────────────────
   editor.onDidChangeModelContent(()=>onEdit());
   editor.onDidChangeCursorPosition(()=>updatePos());
 
+  // Keyboard shortcuts that work while Monaco has focus
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, ()=>runCompile());
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyG,  ()=>generateTB());
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,  ()=>showSaveModal());
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Quote, ()=>runSimulate());
 
+  // ── Split editor instances (created lazily when split mode activated) ──
   window._splitDesignEditor = null;
   window._splitTbEditor     = null;
 
@@ -1181,41 +948,24 @@ require(['vs/editor/editor.main'], function(){
 // ════════════════════════════════════════════════════════════════
 //  BACKEND PING
 // ════════════════════════════════════════════════════════════════
-async function checkBackend(retries=2){
-  for(let attempt=0; attempt<=retries; attempt++){
-    try{
-      const r = await fetch(API+'/health', {signal:AbortSignal.timeout(8000)});
-      const d = await r.json();
-      backendLive = true;
-      const pill = document.getElementById('be-pill');
-      const ver  = (d.iverilog_version||'').match(/[\d.]+/)?.[0] || 'live';
-      pill.className='live';
-      pill.textContent=`● iverilog ${ver}${d.ai_available?' + AI':''}`;
-      return;
-    }catch(err){
-      if(attempt < retries){
-        await new Promise(res=>setTimeout(res, 2000));
-        continue;
-      }
-      backendLive=false;
-      const pill=document.getElementById('be-pill');
-      pill.className='dead'; pill.textContent='● backend offline';
-    }
+async function checkBackend(){
+  try{
+    const r = await fetch(API+'/health', {signal:AbortSignal.timeout(2500)});
+    const d = await r.json();
+    backendLive = true;
+    const pill = document.getElementById('be-pill');
+    const ver  = (d.iverilog_version||'').match(/[\d.]+/)?.[0] || 'live';
+    pill.className='live';
+    pill.textContent=`● iverilog ${ver}${d.ai_available?' + AI':''}`;
+  }catch{
+    backendLive=false;
+    const pill=document.getElementById('be-pill');
+    pill.className='dead'; pill.textContent='● backend offline';
   }
 }
 
-// Fresh one-shot probe used before every AI/Synth call
-// so a stale backendLive=false never blocks requests
-async function pingBackend(){
-  try{
-    const r = await fetch(API+'/health', {signal:AbortSignal.timeout(8000)});
-    if(r.ok){ backendLive=true; return true; }
-  }catch{}
-  backendLive=false; return false;
-}
-
 // ════════════════════════════════════════════════════════════════
-//  EDITOR HELPERS
+//  EDITOR HELPERS  (Monaco-backed)
 // ════════════════════════════════════════════════════════════════
 function onEdit(){
   if(!monacoReady) return;
@@ -1360,6 +1110,7 @@ function handleCompileResult(d){
   ));
   notes.forEach(n=>log(`  ${n.file}:${n.line}: note: ${n.message}`,'muted'));
 
+  // ── Push squiggly-underline markers into Monaco for each file ──
   if(monacoReady){
     const sevMap = {
       error:   monaco.MarkerSeverity.Error,
@@ -1455,206 +1206,22 @@ async function runSimulate(){
       if(d.vcd){
         lastVCD=d.vcd; lastPorts=d.ports;
         log('> VCD dump received — click 📈 VCD tab to view waveform','info');
+        // Highlight the VCD tab to draw attention without forcing switch
         const vcdTab = document.getElementById('vtab-vcd');
         if(vcdTab){ vcdTab.style.borderTopColor='var(--green)'; vcdTab.style.color='var(--green)'; }
         switchView('vcd');
-      } else {
-        lastVCD=null; lastPorts=d.ports||null;
-        log('[!] No VCD produced — add $dumpfile/$dumpvars to your testbench','warn');
       }
       setBadge('ok','Sim OK'); setStat('ok','Sim complete');
     } else {
-      lastVCD=null; lastPorts=null;
       setBadge('err','Sim failed'); setStat('err','Sim failed');
     }
   }catch(e){ log('Sim error: '+e.message,'err'); setStat('err','Error'); }
 }
 
 // ════════════════════════════════════════════════════════════════
-//  YOSYS SYNTHESIS
-// ════════════════════════════════════════════════════════════════
-let lastNetlist = null, lastSynthStats = null, lastSynthLog = '', lastSynthTop = null;
-
-async function runSynthesize(){
-  if(!files.design || files.design.trim().length<5){
-    log('[!] Nothing to synthesize — write a design first','warn'); return;
-  }
-  clrConsole(); setStat('run','Synthesizing…');
-  log('🔩 Running Yosys synthesis…','info');
-
-  if(!backendLive){
-    log('[✗] Backend required for synthesis. Start: uvicorn server:app --port 8001','err');
-    setStat('err','Backend offline'); return;
-  }
-
-  try{
-    const r = await fetch(API+'/synthesize',{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({design:files.design})});
-
-    if(r.status===503){
-      const err = await r.json().catch(()=>({detail:'Yosys not available'}));
-      log('[✗] '+err.detail,'err'); setStat('err','Yosys unavailable'); return;
-    }
-
-    const d = await r.json();
-    lastSynthLog = d.log || '';
-
-    if(d.errors?.length){
-      d.errors.forEach(e=>log(`  ${e.file}: ${e.severity}: ${e.message}`,'err'));
-    }
-
-    if(d.success){
-      lastNetlist = d.netlist; lastSynthStats = d.stats; lastSynthTop = d.top;
-      log(`[✓] Synthesis complete — top module: ${d.top}`,'ok');
-      if(d.stats){
-        log(`> ${d.stats.total_cells} cells, ${d.stats.wires} wires (${d.stats.wire_bits} bits)`,'info');
-      }
-      log('> Click 🔩 Netlist tab to view the gate-level netlist','info');
-      const netTab = document.getElementById('vtab-netlist');
-      if(netTab){ netTab.style.borderTopColor='var(--green)'; netTab.style.color='var(--green)'; }
-      setBadge('ok','Synth OK'); setStat('ok','Synthesis complete');
-      switchView('netlist');
-    } else {
-      lastNetlist = null; lastSynthStats = null;
-      setBadge('err','Synth failed'); setStat('err','Synthesis failed');
-      if(lastSynthLog) log('— yosys log (tail) —','muted');
-      lastSynthLog.split('\n').slice(-15).forEach(l=>{ if(l.trim()) log('  '+l,'sim'); });
-    }
-  }catch(e){ log('Synthesis error: '+e.message,'err'); setStat('err','Error'); }
-}
-
-// ════════════════════════════════════════════════════════════════
-//  AI KEY SETTINGS  (user's own API key, stored client-side only)
-// ════════════════════════════════════════════════════════════════
-const AI_KEY_LS_PROVIDER = 'verilogide_ai_provider';
-const AI_KEY_LS_VALUE    = 'verilogide_ai_key';
-
-function getAIKeySettings(){
-  const provider = localStorage.getItem(AI_KEY_LS_PROVIDER) || '';
-  const apiKey   = localStorage.getItem(AI_KEY_LS_VALUE) || '';
-  return (provider && apiKey) ? {provider, apiKey} : null;
-}
-
-function updateAIKeyBtnLabel(){
-  const btn = document.getElementById('ai-key-btn');
-  const s = getAIKeySettings();
-  if(!btn) return;
-  btn.textContent = s ? `🔑 ${s.provider}` : '🔑 AI Key';
-  btn.classList.toggle('btn-purple', !!s);
-  btn.classList.toggle('btn-default', !s);
-}
-
-function showAIKeyModal(){
-  const s = getAIKeySettings();
-  document.getElementById('ai-key-provider').value = s ? s.provider : 'gemini';
-  document.getElementById('ai-key-value').value = s ? s.apiKey : '';
-  setAIKeyStatus(s
-    ? `Currently using your ${s.provider} key.`
-    : 'No personal key set — add one below to use AI Testbench / AI Design.', '');
-  document.getElementById('ai-key-modal').style.display = 'flex';
-}
-
-function closeAIKeyModal(){
-  document.getElementById('ai-key-modal').style.display = 'none';
-}
-
-function setAIKeyStatus(text, kind){
-  // kind: '' (neutral/muted), 'ok' (green), 'err' (red)
-  const el = document.getElementById('ai-key-status');
-  el.textContent = text;
-  el.style.color = kind === 'ok' ? '#4caf50' : kind === 'err' ? '#e05252' : '';
-}
-
-// Calls the real backend /validate-key endpoint, which makes one small live
-// call to the chosen provider using the given key — this is the only way
-// to actually know whether a key is correct or wrong.
-async function _validateAIKey(provider, apiKey){
-  const r = await fetch(API+'/validate-key', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({provider, api_key: apiKey})
-  });
-  if(!r.ok){
-    const err = await r.json().catch(()=>({detail:r.statusText}));
-    throw new Error(err.detail || r.statusText);
-  }
-  return r.json(); // {valid: bool, message: str}
-}
-
-async function testAIKeyBtn(){
-  const provider = document.getElementById('ai-key-provider').value;
-  const apiKey   = document.getElementById('ai-key-value').value.trim();
-  if(!apiKey){ setAIKeyStatus('Enter a key first.', 'err'); return false; }
-
-  const btn = document.getElementById('ai-key-test-btn');
-  btn.disabled = true; btn.textContent = 'Testing…';
-  setAIKeyStatus('Testing key against ' + provider + '…', '');
-  try{
-    const d = await _validateAIKey(provider, apiKey);
-    if(d.valid){
-      setAIKeyStatus('✓ ' + d.message, 'ok');
-      return true;
-    } else {
-      setAIKeyStatus('✗ Key rejected — ' + d.message, 'err');
-      return false;
-    }
-  }catch(e){
-    setAIKeyStatus('✗ Could not reach backend to test key: ' + e.message, 'err');
-    return false;
-  }finally{
-    btn.disabled = false; btn.textContent = 'Test key';
-  }
-}
-
-async function saveAIKey(){
-  const provider = document.getElementById('ai-key-provider').value;
-  const apiKey   = document.getElementById('ai-key-value').value.trim();
-  if(!apiKey){
-    setAIKeyStatus('Enter an API key first, or use "Clear key" to remove it.', 'err');
-    return;
-  }
-
-  const saveBtn = document.getElementById('ai-key-save-btn');
-  saveBtn.disabled = true; saveBtn.textContent = 'Checking…';
-  const ok = await testAIKeyBtn();
-  saveBtn.disabled = false; saveBtn.textContent = 'Save';
-
-  if(!ok){
-    log(`[!] That ${provider} key did not validate — check it and try again`,'warn');
-    return; // don't save a key we know is broken
-  }
-
-  localStorage.setItem(AI_KEY_LS_PROVIDER, provider);
-  localStorage.setItem(AI_KEY_LS_VALUE, apiKey);
-  updateAIKeyBtnLabel();
-  closeAIKeyModal();
-  log(`> Saved and verified your ${provider} key — using it for AI Testbench / AI Design`,'ok');
-}
-
-function clearAIKey(){
-  localStorage.removeItem(AI_KEY_LS_PROVIDER);
-  localStorage.removeItem(AI_KEY_LS_VALUE);
-  document.getElementById('ai-key-value').value = '';
-  updateAIKeyBtnLabel();
-  setAIKeyStatus('No personal key set — add one above to use AI Testbench / AI Design.', '');
-  log('> Cleared your personal AI key','info');
-}
-
-// Reflect saved key state on the toolbar button as soon as the page loads
-document.addEventListener('DOMContentLoaded', updateAIKeyBtnLabel);
-
-// ════════════════════════════════════════════════════════════════
 //  AI TESTBENCH
 // ════════════════════════════════════════════════════════════════
 async function generateTB(){
-  const keySettings = getAIKeySettings();
-  if(!keySettings){
-    log('[!] No AI API key set — add your own key to use AI Testbench','warn');
-    showAIKeyModal();
-    return;
-  }
-
   clrConsole(); setStat('run','Generating…');
   log('✦ Requesting AI testbench…','ai');
   const lang=document.getElementById('lang').value;
@@ -1663,11 +1230,7 @@ async function generateTB(){
     try{
       const r=await fetch(API+'/generate-testbench',{method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          design:files.design, language:lang,
-          api_key: keySettings.apiKey,
-          provider: keySettings.provider
-        })});
+        body:JSON.stringify({design:files.design,language:lang})});
       const d=await r.json();
       if(d.success){
         setCode('tb', d.testbench);
@@ -1762,20 +1325,7 @@ function localTB(){
   setStat('ok','TB (template)');
 }
 
-function _stripVerilogComments(code){
-  // Strip // line comments and /* */ block comments before parsing ports.
-  // AI-generated Verilog very commonly adds trailing "// explanation"
-  // comments after each port declaration, which breaks the port-list
-  // lookahead regex below if left in. Block comments are blanked out
-  // char-by-char (preserving newlines) so nothing downstream that relies
-  // on line numbers gets shifted.
-  return code
-    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
-    .replace(/\/\/.*$/gm, '');
-}
-
 function extractPortsLocal(code){
-  code = _stripVerilogComments(code);
   const SKIP = new Set([
     'wire','reg','tri','supply0','supply1','wand','wor',
     'input','output','inout','integer','real','time',
@@ -1794,6 +1344,11 @@ function extractPortsLocal(code){
     if(!lst.includes(name)){ lst.push(name); widths[name]=width; }
   }
 
+  // Handles both:
+  //   input a, b, c;            (Verilog-95 body, semicolon-terminated)
+  //   input [3:0] A, B,         (ANSI header, comma/paren/newline-terminated)
+  // Captures the optional [MSB:LSB] bus width so multi-bit ports get
+  // correctly sized reg/wire declarations in generated testbenches.
   const portRe = /\b(input|output|inout)\b(?:\s+(?:wire|reg|tri))?(?:\s*\[\s*(\d+)\s*:\s*(\d+)\s*\])?\s+((?:\w+\s*,\s*)*\w+)(?=\s*[;)]\s*|\s*,?\s*(?:input|output|inout)\b|\s*\n)/g;
 
   for(const m of code.matchAll(portRe)){
@@ -1804,113 +1359,6 @@ function extractPortsLocal(code){
   }
 
   return{module:mm?mm[1]:'design',inputs:ins,outputs:outs,widths};
-}
-
-// ════════════════════════════════════════════════════════════════
-//  AI DESIGN GENERATOR
-// ════════════════════════════════════════════════════════════════
-let _aiDesignResult = null;
-
-function showAIDesignModal(){
-  if(!getAIKeySettings()){
-    log('[!] No AI API key set — add your own key to use AI Design','warn');
-    showAIKeyModal();
-    return;
-  }
-  document.getElementById('ai-design-modal').style.display='flex';
-  document.getElementById('ai-design-name').focus();
-}
-function closeAIDesignModal(){
-  document.getElementById('ai-design-modal').style.display='none';
-}
-
-async function doGenerateDesign(){
-  const keySettings = getAIKeySettings();
-  if(!keySettings){
-    log('[!] No AI API key set — add your own key to use AI Design','warn');
-    closeAIDesignModal();
-    showAIKeyModal();
-    return;
-  }
-
-  const name = document.getElementById('ai-design-name').value.trim();
-  const spec = document.getElementById('ai-design-spec').value.trim();
-  if(!name){
-    log('[!] Enter a design name first, e.g. design "8-bit ripple carry adder"','warn');
-    return;
-  }
-  const lang = document.getElementById('lang').value;
-  const goBtn = document.getElementById('ai-design-go-btn');
-  goBtn.disabled = true; goBtn.textContent = '⏳ Generating…';
-  clrConsole(); setStat('run','Generating design…');
-  log(`✦ Requesting AI design: "${name}"${spec ? ' ['+spec.slice(0,60)+(spec.length>60?'…':'')+']' : ''}`,'ai');
-
-  // Always do a live ping — don't trust potentially stale backendLive flag
-  const alive = await pingBackend();
-  if(!alive){
-    log('[✗] Backend offline — start: uvicorn server:app --port 8001','err');
-    setStat('err','Backend offline');
-    goBtn.disabled = false; goBtn.textContent = '✦ Generate';
-    return;
-  }
-
-  try{
-    const r = await fetch(API+'/generate-design',{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        name, spec: spec || null, language: lang,
-        api_key: keySettings.apiKey,
-        provider: keySettings.provider
-      })});
-    if(!r.ok){
-      const err = await r.json().catch(()=>({detail:r.statusText}));
-      throw new Error(err.detail || r.statusText);
-    }
-    const d = await r.json();
-    _aiDesignResult = {code: d.design, source: d.source};
-    closeAIDesignModal();
-    document.getElementById('ai-design-preview-code').value = d.design;
-    document.getElementById('ai-design-source-badge').textContent = d.source;
-    document.getElementById('ai-design-preview-modal').style.display='flex';
-    log(`✦ Design generated [${d.source}]`,'ai');
-    log('> Review the code, then click "Insert into design.v"','info');
-    setStat('ok','Design ready');
-  }catch(e){
-    log('AI design error: '+e.message,'err');
-    setStat('err','Error');
-  }finally{
-    goBtn.disabled = false; goBtn.textContent = '✦ Generate';
-  }
-}
-
-function closeAIDesignPreview(){
-  document.getElementById('ai-design-preview-modal').style.display='none';
-  _aiDesignResult = null;
-}
-
-// ══════════════════════════════════════════════════════
-//  FIX: insertAIDesign now refreshes views immediately
-// ══════════════════════════════════════════════════════
-function insertAIDesign(){
-  const code = document.getElementById('ai-design-preview-code').value;
-  if(!code || !code.trim()){
-    log('[!] Nothing to insert','warn'); return;
-  }
-  setCode('design', code);
-  document.getElementById('dot-design').className='sb-dot mod';
-  switchTab('design');
-  document.getElementById('ai-design-preview-modal').style.display='none';
-  log('> AI design inserted into design.v','ok');
-  setStat('ok','Design inserted');
-  _aiDesignResult = null;
-  // Clear the prompt fields for next use
-  document.getElementById('ai-design-name').value='';
-  document.getElementById('ai-design-spec').value='';
-  // ── NEW: refresh sidebar + all right-panel views immediately ──
-  updateAnalysisPanel(code);   // sidebar analysis (module name, port counts, etc.)
-  curEx = 'custom';            // force custom so detectCurEx triggers a re-render
-  detectCurEx();               // re-detect module name → sets curEx, rerenders if changed
-  renderView(curView);         // redraw whichever right-panel tab is currently active
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2002,10 +1450,11 @@ function updateAnalysisPanel(code){
 // ════════════════════════════════════════════════════════════════
 function switchView(v){
   curView=v;
-  ['wave','schema','block','vcd','netlist','apps'].forEach(x=>{
+  ['wave','schema','block','vcd','apps'].forEach(x=>{
     const el=document.getElementById('vtab-'+x);
     if(el){
       el.className='vtab'+(x===v?' active':'');
+      // Reset any simulation-highlight colors
       el.style.borderTopColor='';
       el.style.color='';
     }
@@ -2013,102 +1462,12 @@ function switchView(v){
   renderView(v);
 }
 
-function applyFitClass(){
-  const vc = document.getElementById('vcont');
-  if(!vc) return;
-  // "apps" view is text/card content, not a diagram — fit mode doesn't apply there
-  const applies = fitModeOn && curView !== 'apps';
-  vc.classList.toggle('fit-mode', applies);
-  vc.style.setProperty('--fit-scale', fitZoomPct/100);
-  const btn = document.getElementById('fit-btn');
-  if(btn) btn.classList.toggle('active', applies);
-  const zb = document.getElementById('zoom-bar');
-  if(zb) zb.style.display = applies ? 'flex' : 'none';
-  syncZoomUI();
-}
-
-function toggleFitMode(){
-  fitModeOn = !fitModeOn;
-  applyFitClass();
-  renderView(curView);
-}
-
-// ── Right-panel zoom slider (scales the fit-mode diagram down from 100%) ──
-let fitZoomPct = 100;
-try{ const saved = sessionStorage.getItem('verilogide_fit_zoom'); if(saved) fitZoomPct = parseInt(saved, 10); }catch(e){}
-
-function onZoomSlider(val){
-  fitZoomPct = parseInt(val, 10);
-  document.getElementById('vcont').style.setProperty('--fit-scale', fitZoomPct/100);
-  const pctEl = document.getElementById('zoom-pct');
-  if(pctEl) pctEl.textContent = fitZoomPct + '%';
-  try{ sessionStorage.setItem('verilogide_fit_zoom', fitZoomPct); }catch(e){}
-}
-function resetZoom(){
-  fitZoomPct = 100;
-  const slider = document.getElementById('zoom-slider');
-  if(slider) slider.value = 100;
-  onZoomSlider(100);
-}
-function syncZoomUI(){
-  const slider = document.getElementById('zoom-slider');
-  const pctEl  = document.getElementById('zoom-pct');
-  if(slider) slider.value = fitZoomPct;
-  if(pctEl) pctEl.textContent = fitZoomPct + '%';
-}
-
-function applyFsFitClass(){
-  const fb = document.getElementById('fs-body');
-  if(!fb) return;
-  const applies = fsFitModeOn && curView !== 'apps';
-  fb.classList.toggle('fit-mode', applies);
-  fb.style.setProperty('--fit-scale', fsFitZoomPct/100);
-  const btn = document.getElementById('fs-fit-btn');
-  if(btn) btn.classList.toggle('active', applies);
-  const zb = document.getElementById('fs-zoom-bar');
-  if(zb) zb.style.display = applies ? 'flex' : 'none';
-  syncFsZoomUI();
-}
-
-function toggleFsFitMode(){
-  fsFitModeOn = !fsFitModeOn;
-  applyFsFitClass();
-  // Rebuild fullscreen content fresh so SVGs regenerate with the right preserveAspectRatio
-  openFullscreen();
-}
-
-// ── Fullscreen zoom slider (independent of the right-panel one) ──
-let fsFitZoomPct = 40; // default to 40% — diagrams looked oversized at 100% in fullscreen
-try{ const saved = sessionStorage.getItem('verilogide_fs_zoom'); if(saved) fsFitZoomPct = parseInt(saved, 10); }catch(e){}
-
-function onFsZoomSlider(val){
-  fsFitZoomPct = parseInt(val, 10);
-  document.getElementById('fs-body').style.setProperty('--fit-scale', fsFitZoomPct/100);
-  const pctEl = document.getElementById('fs-zoom-pct');
-  if(pctEl) pctEl.textContent = fsFitZoomPct + '%';
-  try{ sessionStorage.setItem('verilogide_fs_zoom', fsFitZoomPct); }catch(e){}
-}
-function resetFsZoom(){
-  fsFitZoomPct = 100;
-  const slider = document.getElementById('fs-zoom-slider');
-  if(slider) slider.value = 100;
-  onFsZoomSlider(100);
-}
-function syncFsZoomUI(){
-  const slider = document.getElementById('fs-zoom-slider');
-  const pctEl  = document.getElementById('fs-zoom-pct');
-  if(slider) slider.value = fsFitZoomPct;
-  if(pctEl) pctEl.textContent = fsFitZoomPct + '%';
-}
-
 function renderView(v){
   if(v==='wave')   renderWave(curEx);
   else if(v==='schema') renderSchema();
   else if(v==='block')  renderBlock();
   else if(v==='vcd')    renderVCDView();
-  else if(v==='netlist') renderNetlist();
   else                  renderApps();
-  applyFitClass();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2166,6 +1525,8 @@ const WCFG = {
 const COL={clk:'var(--blue)',green:'var(--green)',red:'var(--red)',yellow:'var(--yellow)',
   purple:'var(--purple)',cyan:'var(--cyan)',orange:'var(--orange)',blue:'var(--blue)',white:'var(--fg1)'};
 
+// Build a generic waveform config from the live design's ports when the
+// design doesn't match one of the curated built-in examples.
 function getWaveCfg(ex){
   if(WCFG[ex]) return WCFG[ex];
 
@@ -2199,18 +1560,17 @@ function renderWave(ex){
   const badgeTxt = backendLive
     ? 'Click ⚡ Simulate for real VCD'
     : (cfg.generic ? 'Auto preview from your ports' : 'Demo waveform');
-  const par = fitModeOn ? 'none' : 'xMidYMid meet';
   vc.innerHTML=`
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-shrink:0">
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
     <span style="font-size:11px;color:var(--fg2)">Waveform Viewer</span>
     <span class="badge ${backendLive?'ok':'info'}">${badgeTxt}</span>
     <div style="flex:1"></div>
     <button class="btn btn-default" style="padding:2px 8px;font-size:10px" id="wave-anim-btn" onclick="toggleWaveAnim()">⏵ Animate</button>
   </div>
-  <div class="wave-wrap fit-stretch">
-    <svg id="wave-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}">${buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,0)}</svg>
+  <div class="wave-wrap">
+    <svg id="wave-svg" viewBox="0 0 ${W} ${H}">${buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,0)}</svg>
   </div>
-  <div style="margin-top:8px;font-size:10px;color:var(--fg3);flex-shrink:0">
+  <div style="margin-top:8px;font-size:10px;color:var(--fg3)">
     ${cfg.generic
       ? 'This is an auto-generated preview based on your design\'s input/output ports — actual signal values depend on your logic.'
       : 'Tip: Run ⚡ Simulate to replace this with a real VCD waveform from Icarus Verilog.'}
@@ -2219,6 +1579,7 @@ function renderWave(ex){
 
 function buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,off){
   let s='';
+  // Time ruler
   s+=`<line x1="${LBL}" y1="20" x2="${W-4}" y2="20" stroke="var(--bg3)" stroke-width="0.5"/>`;
   for(let i=0;i<=5;i++){
     const x=LBL+i*(WAVE/5);
@@ -2273,6 +1634,7 @@ function buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,off){
       }
     }
   });
+  // Cursor
   if(off>0){
     const cx=LBL+(off%WAVE);
     s+=`<line x1="${cx}" y1="18" x2="${cx}" y2="${H-4}" stroke="var(--yellow)" stroke-width="0.8" stroke-dasharray="3,2" opacity="0.6"/>`;
@@ -2303,7 +1665,7 @@ function toggleWaveAnim(){
 }
 
 // ════════════════════════════════════════════════════════════════
-//  VCD VIEWER
+//  VCD VIEWER (from real simulation)
 // ════════════════════════════════════════════════════════════════
 function renderVCDView(){
   const vc=document.getElementById('vcont');
@@ -2317,13 +1679,13 @@ function renderVCDView(){
   const names=Object.keys(signals).slice(0,10);
   if(!names.length){vc.innerHTML='<div class="c-warn">VCD parsed but no signals found.</div>';return;}
 
+  // find max time
   let maxT=0;
   names.forEach(n=>{const v=signals[n];if(v.vals.length) maxT=Math.max(maxT,v.vals[v.vals.length-1].t);});
   maxT=maxT||1;
 
   const W=390,ROW=26,LBL=80,WAVE=W-LBL-6,H=names.length*ROW+32;
-  const par = fitModeOn ? 'none' : 'xMidYMid meet';
-  let svg=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px;display:block">`;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px;display:block">`;
   svg+=`<line x1="${LBL}" y1="20" x2="${W-4}" y2="20" stroke="var(--bg3)" stroke-width="0.5"/>`;
   for(let i=0;i<=4;i++){
     const x=LBL+i*(WAVE/4);
@@ -2349,6 +1711,7 @@ function renderVCDView(){
       });
       svg+=`<line x1="${px}" y1="${pv==='1'?hi:lo}" x2="${W-6}" y2="${pv==='1'?hi:lo}" stroke="${col}" stroke-width="1.5"/>`;
     } else {
+      // bus — draw filled segments, label with hex for compact readability
       let px=LBL,pv=sig.vals[0]?.v||'x'.repeat(sig.width);
       sig.vals.forEach(({t,v})=>{
         const x=Math.min(LBL+Math.round((t/maxT)*WAVE),W-6);
@@ -2376,14 +1739,15 @@ function renderVCDView(){
   svg+='</svg>';
 
   vc.innerHTML=`
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-shrink:0">
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
     <span style="font-size:11px;color:var(--fg2)">VCD Waveform</span>
     <span class="badge ok">From Icarus Verilog Simulation</span>
   </div>
-  <div class="fit-stretch">${svg}</div>
-  <div style="margin-top:8px;font-size:10px;color:var(--fg3);flex-shrink:0">${names.length} signals, ${maxT}${timeUnit} total sim time</div>`;
+  ${svg}
+  <div style="margin-top:8px;font-size:10px;color:var(--fg3)">${names.length} signals, ${maxT}${timeUnit} total sim time</div>`;
 }
 
+// Render a bus value as hex when fully defined, else show raw binary (with x/z)
 function busLabel(bin){
   if(/[xXzZ]/.test(bin)) return bin.length>6 ? bin.slice(0,6)+'…' : bin;
   const hex = parseInt(bin,2).toString(16).toUpperCase();
@@ -2395,6 +1759,7 @@ function parseVCD(vcd){
   let curTime=0;
   const lines=vcd.split('\n');
 
+  // Extract the real $timescale (e.g. "1s", "1ns", "10ps") instead of assuming ps
   let timeUnit='ps';
   const tsMatch = vcd.match(/\$timescale\s+([\d.]+)\s*(s|ms|us|ns|ps|fs)\s*\$end/);
   if(tsMatch) timeUnit = tsMatch[2];
@@ -2407,9 +1772,11 @@ function parseVCD(vcd){
     } else if(line.startsWith('#')){
       curTime=parseInt(line.slice(1));
     } else if(line.startsWith('b')||line.startsWith('B')){
+      // Bus/vector value:  b1010 !   (must check BEFORE single-bit check)
       const m=line.match(/^[bB]([01xzXZ]+)\s+(\S+)/);
       if(m&&idMap[m[2]]) idMap[m[2]].vals.push({t:curTime,v:m[1]});
     } else if(/^[01xzXZ]/.test(line)&&line.length>=2){
+      // Single-bit value:  1"  0#  x!
       const v=line[0],id=line.slice(1);
       if(idMap[id]) idMap[id].vals.push({t:curTime,v});
     }
@@ -2418,6 +1785,8 @@ function parseVCD(vcd){
   const out={};
   Object.values(idMap).forEach(s=>{
     if(s.vals.length>0){
+      // Zero-pad / normalise bus values to a consistent width so rendering
+      // never breaks on short binary strings like "10" for a 4-bit signal.
       const vals = s.width>1
         ? s.vals.map(({t,v})=>({t, v: v.padStart(s.width, v[0]==='x'?'x':v[0]==='z'?'z':'0')}))
         : s.vals;
@@ -2466,12 +1835,14 @@ const SCHEMAS={
 <text x="14" y="75" font-size="10" fill="var(--blue)" text-anchor="end">clk</text>
 <line x1="18" y1="102" x2="95" y2="102" stroke="var(--red)" stroke-width="1.5" marker-end="url(#a)"/>
 <text x="14" y="105" font-size="10" fill="var(--red)" text-anchor="end">rst</text>
+<!-- 4 flip flops -->
 ${[0,1,2,3].map(i=>`
 <rect x="${105+i*48}" y="56" width="40" height="36" rx="3" fill="#0d1a2d" stroke="var(--blue)" stroke-width="1.2"/>
 <text x="${125+i*48}" y="77" font-size="9" fill="var(--blue)" text-anchor="middle">FF${i}</text>
 ${i<3?`<line x1="${145+i*48}" y1="74" x2="${153+i*48}" y2="74" stroke="var(--fg3)" stroke-width="0.8"/>`:''}`).join('')}
 <line x1="293" y1="74" x2="370" y2="74" stroke="var(--green)" stroke-width="1.5" marker-end="url(#a)"/>
 <text x="374" y="77" font-size="10" fill="var(--green)">count[3:0]</text>
+<!-- clk bus line -->
 <line x1="75" y1="72" x2="75" y2="130" stroke="var(--blue)" stroke-width="0.8" stroke-dasharray="3,2"/>
 ${[0,1,2,3].map(i=>`<line x1="75" y1="130" x2="${115+i*48}" y2="130" stroke="var(--blue)" stroke-width="0.8" stroke-dasharray="3,2"/>
 <line x1="${115+i*48}" y1="130" x2="${115+i*48}" y2="92" stroke="var(--blue)" stroke-width="0.8" marker-end="url(#a)"/>`).join('')}
@@ -2530,12 +1901,15 @@ ${[0,1,2,3].map(i=>`
 <circle cx="333" cy="110" r="40" fill="var(--yellow-bg)" stroke="var(--yellow)"stroke-width="2"/>
 <text x="333" y="106" font-size="12" fill="var(--yellow)"text-anchor="middle" font-weight="bold">YELLOW</text>
 <text x="333" y="121" font-size="9"  fill="var(--yellow)"text-anchor="middle">state=2</text>
+<!-- transitions -->
 <path d="M 112,92 Q 150,68 172,72" stroke="var(--blue)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
 <text x="140" y="72" font-size="9" fill="var(--fg3)" text-anchor="middle">↑clk</text>
 <path d="M 248,72 Q 285,72 295,90" stroke="var(--blue)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
 <path d="M 318,148 Q 210,195 92,148" stroke="var(--blue)" stroke-width="1.5" fill="none" marker-end="url(#a)"/>
+<!-- RST arrow to RED -->
 <line x1="75" y1="30" x2="75" y2="68" stroke="var(--red)" stroke-width="1.5" marker-end="url(#a)" stroke-dasharray="4,2"/>
 <text x="75" y="25" font-size="9" fill="var(--red)" text-anchor="middle">rst</text>
+<!-- animated token -->
 <circle r="5" fill="var(--blue)" opacity="0.9">
   <animateMotion dur="3s" repeatCount="indefinite"
     path="M 75,110 Q 140,68 210,62 Q 270,72 333,110 Q 210,185 75,110 Z"/>
@@ -2572,6 +1946,7 @@ ${[0,1,2,3].map(i=>`
 <text x="14" y="111" font-size="10" fill="var(--cyan)" text-anchor="end">din[7:0]</text>
 <line x1="18" y1="132" x2="90" y2="132" stroke="var(--orange)" stroke-width="1.5" marker-end="url(#a)"/>
 <text x="14" y="135" font-size="10" fill="var(--orange)" text-anchor="end">rd_en</text>
+<!-- FIFO block with memory slots -->
 <rect x="90" y="44" width="140" height="120" rx="4" fill="#0d1a0d" stroke="var(--blue)" stroke-width="2"/>
 ${[0,1,2,3].map(i=>`<rect x="${100}" y="${54+i*25}" width="120" height="20" rx="2" fill="#162016" stroke="var(--fg3)" stroke-width="0.5"/>
 <text x="160" y="${68+i*25}" font-size="9" fill="var(--fg3)" text-anchor="middle">slot ${i}</text>`).join('')}
@@ -2587,6 +1962,8 @@ ${[0,1,2,3].map(i=>`<rect x="${100}" y="${54+i*25}" width="120" height="20" rx="
 </circle>`
 };
 
+// Build a generic animated schematic from the live design's ports when
+// the design doesn't match a curated built-in example.
 function buildGenericSchema(){
   const p = extractPortsLocal(files.design);
   const ins = p.inputs.slice(0,8), outs = p.outputs.slice(0,8);
@@ -2626,16 +2003,15 @@ function renderSchema(){
   const footer = known
     ? '⚡ Animated dots represent signal propagation. Each circle travels from source to destination at circuit speed.'
     : '⚡ Auto-generated from your design\'s ports. Load a built-in example (sidebar) for a curated, detailed schematic.';
-  const par = fitModeOn ? 'none' : 'xMidYMid meet';
   document.getElementById('vcont').innerHTML=`
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0">
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
     <span style="font-size:11px;color:var(--fg2)">Schematic — animated signal flow</span>
     <span class="badge ${known?'info':'warn'}">${badgeTxt}</span>
   </div>
-  <div class="schema-wrap fit-stretch">
-    <svg viewBox="-40 0 480 230" preserveAspectRatio="${par}">${sc}</svg>
+  <div class="schema-wrap">
+    <svg viewBox="0 0 400 230">${sc}</svg>
   </div>
-  <div style="margin-top:8px;padding:7px;background:var(--bg1);border:1px solid var(--bg3);border-radius:4px;font-size:10px;color:var(--fg3);flex-shrink:0">
+  <div style="margin-top:8px;padding:7px;background:var(--bg1);border:1px solid var(--bg3);border-radius:4px;font-size:10px;color:var(--fg3)">
     ${footer}
   </div>`;
 }
@@ -2650,10 +2026,8 @@ function renderBlock(){
 
   const W=390, boxH=Math.max(120,Math.max(ins.length,outs.length)*28+50);
   const H=boxH+50;
-  const par = fitModeOn ? 'none' : 'xMidYMid meet';
-  const MARGIN = 36; // breathing room so edge labels don't clip when stretched
 
-  let svg=`<svg viewBox="-${MARGIN} 0 ${W+MARGIN*2} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px">`;
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px">`;
   svg+=`<defs><marker id="ba" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
     <polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>`;
   svg+=`<rect x="130" y="20" width="130" height="${boxH}" rx="5" fill="#0c1830" stroke="var(--blue)" stroke-width="2"/>`;
@@ -2677,22 +2051,22 @@ function renderBlock(){
   });
   svg+='</svg>';
 
+  // port table
   let rows='';
   ins.forEach(n=>rows+=`<tr><td style="color:var(--green)">→ in</td><td>${n}</td><td style="color:var(--fg3)">input</td></tr>`);
   outs.forEach(n=>rows+=`<tr><td style="color:var(--red)">← out</td><td>${n}</td><td style="color:var(--fg3)">output</td></tr>`);
 
+  // analysis from backend
   document.getElementById('vcont').innerHTML=`
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0">
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
     <span style="font-size:11px;color:var(--fg2)">Block Diagram — ${mod}</span>
     <span class="badge info">${ins.length}in / ${outs.length}out</span>
   </div>
-  <div class="fit-stretch" style="min-height:160px">${svg}</div>
-  <div style="flex-shrink:0;overflow:auto;max-height:160px;margin-top:6px">
-    <table class="port-table">
-      <tr><th>Direction</th><th>Signal</th><th>Type</th></tr>
-      ${rows}
-    </table>
-  </div>`;
+  ${svg}
+  <table class="port-table">
+    <tr><th>Direction</th><th>Signal</th><th>Type</th></tr>
+    ${rows}
+  </table>`;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2736,443 +2110,6 @@ const APPS={
   ],
 };
 
-function _escHtml(s){
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ════════════════════════════════════════════════════════════════
-//  GATE-LEVEL NETLIST SCHEMATIC  (parses Yosys generic-cell output
-//  into a gate graph and auto-lays it out left-to-right by logic
-//  depth, similar to a standard schematic viewer.)
-// ════════════════════════════════════════════════════════════════
-let netlistViewMode = 'schematic'; // 'schematic' | 'code'
-
-function parseNetlistPorts(code){
-  const ports = { inputs: [], outputs: [] };
-  // Handles both single-port lines (input clk;) AND comma-separated lists
-  // (input clk, rst, in_a, in_b;) — the latter is valid Verilog-95 style
-  // that some synthesis paths emit instead of one port per line.
-  const portRe = /\b(input|output)\b(?:\s+(?:wire|reg|tri))?(?:\s*\[\s*(\d+)\s*:\s*(\d+)\s*\])?\s+((?:\w+\s*,\s*)*\w+)\s*;/g;
-  let m; const seen = new Set();
-  while((m = portRe.exec(code))){
-    const [, dir, msb, lsb, names] = m;
-    const width = msb !== undefined ? (parseInt(msb)-parseInt(lsb)+1) : 1;
-    for(const rawName of names.split(',')){
-      const name = rawName.trim();
-      if(!name) continue;
-      const key = dir+name;
-      if(seen.has(key)) continue;
-      seen.add(key);
-      ports[dir==='input'?'inputs':'outputs'].push({name, width});
-    }
-  }
-  return ports;
-}
-
-function parseNetlistGates(code){
-  const assignRe = /assign\s+([\w\[\]:]+)\s*=\s*([^;]+);/g;
-  const gates = []; let m;
-  while((m = assignRe.exec(code))) gates.push({ lhs: m[1].trim(), rhs: m[2].trim() });
-  return gates;
-}
-
-function classifyNetlistGate(rhs){
-  rhs = rhs.trim();
-
-  // Ternary mux: cond ? a : b — Yosys emits these for mux cells instead of
-  // AND/OR chains (e.g. "sel[0] ? d[3] : d[2]"). Must be checked first,
-  // and only at the TOP level (depth 0), since '?'/':' can't appear nested
-  // inside the simple bitwise expressions handled further below.
-  let qIdx = -1, cIdx = -1, qDepth = 0;
-  for(let i=0;i<rhs.length;i++){
-    const c = rhs[i];
-    if(c==='(') qDepth++;
-    else if(c===')') qDepth--;
-    else if(qDepth===0 && c==='?' && qIdx===-1) qIdx = i;
-    else if(qDepth===0 && c===':' && qIdx!==-1 && cIdx===-1) cIdx = i;
-  }
-  if(qIdx!==-1 && cIdx!==-1){
-    const cond = rhs.slice(0, qIdx).trim();
-    const a = rhs.slice(qIdx+1, cIdx).trim();
-    const b = rhs.slice(cIdx+1).trim();
-    // inputs order [data0, data1, sel] — output = sel ? data1 : data0
-    return { type: 'MUX2', inputs: [b, a, cond] };
-  }
-
-  let inverted = false, body = rhs;
-  let m = body.match(/^~\((.*)\)$/);
-  if(m){ inverted = true; body = m[1]; }
-  if(/^~?[\w\[\]:.]+$/.test(body)){
-    const sig = body.replace(/^~/, '');
-    const isInv = body.startsWith('~') || inverted;
-    return { type: isInv ? 'NOT' : 'BUF', inputs: [sig] };
-  }
-  let depth = 0, opIdx = -1, opChar = null;
-  for(let i=0;i<body.length;i++){
-    const c = body[i];
-    if(c==='(') depth++;
-    else if(c===')') depth--;
-    else if(depth===0 && (c==='&'||c==='|'||c==='^')){ opIdx=i; opChar=c; break; }
-  }
-  if(opIdx===-1) return { type:'BUF', inputs:[body.replace(/^~/,'')] };
-  let left = body.slice(0,opIdx).trim(), right = body.slice(opIdx+1).trim();
-  const stripInv = (s) => {
-    let inv=false, mm=s.match(/^~\((.*)\)$/);
-    if(mm){ inv=true; s=mm[1]; } else if(s.startsWith('~')){ inv=true; s=s.slice(1); }
-    return { sig: s.trim(), inv };
-  };
-  const L = stripInv(left), R = stripInv(right);
-  const baseOp = opChar==='&'?'AND':opChar==='|'?'OR':'XOR';
-  let type;
-  if(baseOp==='XOR') type = inverted ? 'XNOR' : 'XOR';
-  else if(L.inv || R.inv) type = inverted ? (baseOp==='AND'?'ORNOT':'ANDNOT') : (baseOp==='AND'?'ANDNOT':'ORNOT');
-  else type = inverted ? (baseOp==='AND'?'NAND':'NOR') : baseOp;
-  return { type, inputs: [L.sig, R.sig] };
-}
-
-function buildNetlistLayout(code){
-  const ports = parseNetlistPorts(code);
-  const rawGates = parseNetlistGates(code);
-  if(!rawGates.length) return null;
-
-  const classified = rawGates.map(g => ({ id: g.lhs, ...classifyNetlistGate(g.rhs) }));
-  const gateMap = {};
-  classified.forEach(g => gateMap[g.id] = g);
-
-  const inputSignals = [];
-  const declaredInputSet = new Set();
-  ports.inputs.forEach(p=>{
-    if(p.width>1) for(let i=0;i<p.width;i++){ const s=`${p.name}[${i}]`; inputSignals.push(s); declaredInputSet.add(s); }
-    else { inputSignals.push(p.name); declaredInputSet.add(p.name); }
-  });
-  const outputSignals = [];
-  ports.outputs.forEach(p=>{
-    if(p.width>1) for(let i=0;i<p.width;i++) outputSignals.push(`${p.name}[${i}]`);
-    else outputSignals.push(p.name);
-  });
-
-  // Some netlists reference signals that are neither a declared input port
-  // NOR the output of any assign statement (e.g. a register/DFF output that
-  // a partial synthesis pass left as a bare wire). These "implicit" signals
-  // must still get their own row slot at column 0 — otherwise they all
-  // collapse onto row 0 and visually collide with the first real input.
-  const implicitSignals = [];
-  const seenImplicit = new Set();
-  classified.forEach(g=>{
-    g.inputs.forEach(sig=>{
-      if(!declaredInputSet.has(sig) && !gateMap[sig] && !seenImplicit.has(sig)){
-        seenImplicit.add(sig);
-        implicitSignals.push(sig);
-      }
-    });
-  });
-
-  const depthMap = {};
-  inputSignals.forEach(s => depthMap[s]=0);
-  implicitSignals.forEach(s => depthMap[s]=0);
-  function getDepth(sig, visiting=new Set()){
-    if(sig in depthMap) return depthMap[sig];
-    if(visiting.has(sig)) return 0;
-    visiting.add(sig);
-    const g = gateMap[sig];
-    if(!g){ depthMap[sig]=0; return 0; }
-    const d = 1 + Math.max(0, ...g.inputs.map(i=>getDepth(i,visiting)));
-    depthMap[sig]=d;
-    return d;
-  }
-  classified.forEach(g=>getDepth(g.id));
-  outputSignals.forEach(s=>{ if(!(s in depthMap)) getDepth(s); });
-
-  const maxDepth = Math.max(0, ...Object.values(depthMap));
-  const columns = {};
-  for(let c=1;c<=maxDepth;c++) columns[c]=[];
-  classified.forEach(g=>{ const d=depthMap[g.id]; if(d>=1) columns[d].push(g); });
-
-  // Column-0 ("input rail") row assignment: real inputs first, then any
-  // implicit signals appended below them — every depth-0 signal now gets
-  // a unique row, so nothing overlaps.
-  const col0Signals = [...inputSignals, ...implicitSignals];
-  const rowIndex = {};
-  col0Signals.forEach((s,i)=>rowIndex[s]=i);
-  for(let c=1;c<=maxDepth;c++) columns[c].forEach((g,i)=>rowIndex[g.id]=i);
-
-  function barycenter(g){
-    const ys = g.inputs.map(i => rowIndex[i]!==undefined ? rowIndex[i] : 0);
-    return ys.reduce((a,b)=>a+b,0)/ys.length;
-  }
-  for(let pass=0; pass<6; pass++){
-    for(let c=1;c<=maxDepth;c++){
-      columns[c].sort((a,b)=>barycenter(a)-barycenter(b));
-      columns[c].forEach((g,i)=>rowIndex[g.id]=i);
-    }
-    for(let c=maxDepth;c>=1;c--){
-      columns[c].sort((a,b)=>barycenter(a)-barycenter(b));
-      columns[c].forEach((g,i)=>rowIndex[g.id]=i);
-    }
-  }
-
-  return { ports, classified, gateMap, depthMap, columns, maxDepth, inputSignals, implicitSignals, outputSignals, rowIndex };
-}
-
-// Gate family lookup: shape + whether output/input carries a bubble.
-// ANDNOT/ORNOT are real Yosys generic-cell primitives — AND/OR with one
-// inverted INPUT — distinct from NAND/NOR which invert the OUTPUT.
-const NL_GATE_INFO = {
-  AND:    { shape:'and', outBubble:false, inBubble:false },
-  NAND:   { shape:'and', outBubble:true,  inBubble:false },
-  ANDNOT: { shape:'and', outBubble:false, inBubble:true  },
-  OR:     { shape:'or',  outBubble:false, inBubble:false },
-  NOR:    { shape:'or',  outBubble:true,  inBubble:false },
-  ORNOT:  { shape:'or',  outBubble:false, inBubble:true  },
-  XOR:    { shape:'xor', outBubble:false, inBubble:false },
-  XNOR:   { shape:'xor', outBubble:true,  inBubble:false },
-  NOT:    { shape:'not', outBubble:true,  inBubble:false },
-  BUF:    { shape:'not', outBubble:false, inBubble:false },
-  MUX2:   { shape:'mux', outBubble:false, inBubble:false },
-};
-function nlGateInfo(type){ return NL_GATE_INFO[type] || { shape:'box', outBubble:false, inBubble:false }; }
-
-const NL_GW = 36, NL_GH = 22;
-const NL_MUX_GH = 34; // taller than logic gates — needs room for 2 stacked data inputs + sel nub on top
-
-function nlGatePoints(type, x, y){
-  const info = nlGateInfo(type);
-  let inPts, outPt;
-  if(info.shape==='not'){ inPts=[[x,y+NL_GH/2]]; outPt=[x+NL_GW,y+NL_GH/2]; }
-  else if(info.shape==='and'||info.shape==='box'){ inPts=[[x,y+NL_GH*0.22],[x,y+NL_GH*0.78]]; outPt=[x+NL_GW,y+NL_GH/2]; }
-  else if(info.shape==='mux'){
-    // 3 input points: data0 (top-left), data1 (bottom-left), sel (top, vertical nub)
-    inPts = [[x, y+NL_MUX_GH*0.22], [x, y+NL_MUX_GH*0.78], [x+NL_GW/2, y-8]];
-    outPt = [x+NL_GW, y+NL_MUX_GH/2];
-  }
-  else { inPts=[[x+3,y+NL_GH*0.22],[x+3,y+NL_GH*0.78]]; outPt=[x+NL_GW,y+NL_GH/2]; }
-  return { inPts, outPt: info.outBubble ? [outPt[0]+6,outPt[1]] : outPt, bubble: info.outBubble };
-}
-
-function nlGateShapeSVG(type, x, y){
-  const info = nlGateInfo(type);
-  const STROKE = '#ff8a80';
-  let body = '';
-  if(info.shape==='not'){
-    body = `<polygon points="${x},${y} ${x+NL_GW},${y+NL_GH/2} ${x},${y+NL_GH}" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
-  } else if(info.shape==='and'){
-    body = `<path d="M ${x},${y} L ${x+NL_GW*0.55},${y} A ${NL_GH/2},${NL_GH/2} 0 0 1 ${x+NL_GW*0.55},${y+NL_GH} L ${x},${y+NL_GH} Z" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
-  } else if(info.shape==='or'||info.shape==='xor'){
-    body = `<path d="M ${x},${y} Q ${x+NL_GW*0.35},${y} ${x+NL_GW*0.55},${y+NL_GH*0.15} Q ${x+NL_GW},${y+NL_GH/2} ${x+NL_GW*0.55},${y+NL_GH*0.85} Q ${x+NL_GW*0.35},${y+NL_GH} ${x},${y+NL_GH} Q ${x+NL_GW*0.18},${y+NL_GH/2} ${x},${y} Z" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
-    if(info.shape==='xor') body += `<path d="M ${x-4},${y} Q ${x-4+NL_GW*0.18},${y+NL_GH/2} ${x-4},${y+NL_GH}" fill="none" stroke="${STROKE}" stroke-width="1"/>`;
-  } else if(info.shape==='mux'){
-    const topY = y, botY = y + NL_MUX_GH, inset = 8;
-    body = `<path d="M ${x},${topY} L ${x+NL_GW},${topY+inset} L ${x+NL_GW},${botY-inset} L ${x},${botY} Z" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
-    body += `<text x="${x+4}" y="${topY+13}" font-size="7.5" fill="${STROKE}" font-family="monospace">0</text>`;
-    body += `<text x="${x+4}" y="${botY-7}" font-size="7.5" fill="${STROKE}" font-family="monospace">1</text>`;
-    // sel nub line from gate top up to where the routed sel wire will land
-    body += `<line x1="${x+NL_GW/2}" y1="${topY-8}" x2="${x+NL_GW/2}" y2="${topY+inset*0.6}" stroke="${STROKE}" stroke-width="1"/>`;
-  } else {
-    body = `<rect x="${x}" y="${y}" width="${NL_GW}" height="${NL_GH}" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
-  }
-  if(info.outBubble){
-    const p = nlGatePoints(type,x,y);
-    body += `<circle cx="${p.outPt[0]-3}" cy="${p.outPt[1]}" r="3" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1.1"/>`;
-  }
-  if(info.inBubble){
-    const p = nlGatePoints(type,x,y);
-    const ip = p.inPts[1];
-    body += `<circle cx="${ip[0]+3}" cy="${ip[1]}" r="2.5" fill="var(--bg0)" stroke="${STROKE}" stroke-width="1"/>`;
-  }
-  return body;
-}
-
-function buildNetlistSchematicSVG(code, fitMode){
-  const L = buildNetlistLayout(code);
-  if(!L) return null;
-  const { inputSignals, implicitSignals, outputSignals, columns, maxDepth, gateMap } = L;
-  const WIRE = '#3fb950', TXT = '#8b949e', IMPLICIT_WIRE = '#d2a8ff', IMPLICIT_TXT = '#a98ce8';
-  const COL_GAP = 100, ROW_GAP = 40, LEFT_MARGIN = 130, TOP_MARGIN = 32;
-
-  const colX = {};
-  colX[0] = LEFT_MARGIN;
-  for(let c=1;c<=maxDepth;c++) colX[c] = LEFT_MARGIN + c*COL_GAP;
-  colX[maxDepth+1] = LEFT_MARGIN + (maxDepth+1)*COL_GAP;
-
-  // rowCenterY(row) = vertical center of a given row slot. ROW_GAP is sized
-  // generously enough (40px) to fit the tallest gate (MUX2, 34px + 8px sel
-  // nub above it) without colliding with the row above.
-  function rowCenterY(row){ return TOP_MARGIN + row*ROW_GAP + ROW_GAP/2; }
-  function gateTopY(type, row){
-    const h = nlGateInfo(type).shape==='mux' ? NL_MUX_GH : NL_GH;
-    return rowCenterY(row) - h/2;
-  }
-
-  // Column-0 ("input rail") includes both real declared inputs AND any
-  // implicit signals (referenced but never declared/assigned — typically
-  // a register output a partial synth pass left as a bare wire). Each
-  // gets its own row so they never visually collide.
-  const col0Signals = [...inputSignals, ...implicitSignals];
-  const posRow = {};
-  col0Signals.forEach((s,i)=>posRow[s]=i);
-  let maxRows = col0Signals.length;
-  for(let c=1;c<=maxDepth;c++){
-    columns[c].forEach((g,i)=>{ posRow[g.id]=i; });
-    maxRows = Math.max(maxRows, columns[c].length);
-  }
-  outputSignals.forEach((s,i)=>{ posRow[s] = posRow[s] !== undefined ? posRow[s] : i; });
-  maxRows = Math.max(maxRows, outputSignals.length);
-
-  const totalW = colX[maxDepth+1] + 100;
-  const totalH = TOP_MARGIN + maxRows*ROW_GAP + 20;
-
-  function pointFor(sig){
-    if(gateMap[sig]){
-      const d = L.depthMap[sig];
-      const x = colX[d], y = gateTopY(gateMap[sig].type, posRow[sig]);
-      return nlGatePoints(gateMap[sig].type, x, y).outPt;
-    }
-    const y = rowCenterY(posRow[sig] !== undefined ? posRow[sig] : 0);
-    return [colX[0]+24, y];
-  }
-
-  let svg = '';
-  inputSignals.forEach(s=>{
-    const y = rowCenterY(posRow[s]);
-    svg += `<line x1="46" y1="${y}" x2="${colX[0]+24}" y2="${y}" stroke="${WIRE}" stroke-width="1"/>`;
-    svg += `<text x="42" y="${y+3}" font-size="9" fill="${TXT}" text-anchor="end" font-family="monospace">${s}</text>`;
-  });
-  // Implicit signals (e.g. undriven register outputs) get a dashed purple
-  // stub and a "(reg)" suffix so it's visually clear they're not primary
-  // module inputs — just signals this netlist references without a
-  // visible driver in the parsed assign statements.
-  implicitSignals.forEach(s=>{
-    const y = rowCenterY(posRow[s]);
-    svg += `<line x1="46" y1="${y}" x2="${colX[0]+24}" y2="${y}" stroke="${IMPLICIT_WIRE}" stroke-width="1" stroke-dasharray="3,2"/>`;
-    svg += `<text x="42" y="${y+3}" font-size="9" fill="${IMPLICIT_TXT}" text-anchor="end" font-family="monospace">${s}</text>`;
-    svg += `<text x="42" y="${y+13}" font-size="7" fill="${IMPLICIT_TXT}" text-anchor="end" font-family="monospace" opacity="0.7">(undriven)</text>`;
-  });
-
-  for(let c=1;c<=maxDepth;c++){
-    columns[c].forEach(g=>{
-      const x = colX[c], y = gateTopY(g.type, posRow[g.id]);
-      const pts = nlGatePoints(g.type, x, y);
-      g.inputs.forEach((inSig, idx)=>{
-        const from = pointFor(inSig);
-        const to = pts.inPts[idx] || pts.inPts[0];
-        const midX = (from[0]+to[0])/2;
-        svg += `<path d="M ${from[0]},${from[1]} L ${midX},${from[1]} L ${midX},${to[1]} L ${to[0]},${to[1]}" fill="none" stroke="${WIRE}" stroke-width="0.8" opacity="0.85"/>`;
-      });
-      svg += nlGateShapeSVG(g.type, x, y);
-    });
-  }
-
-  outputSignals.forEach(s=>{
-    const from = pointFor(s);
-    const y = rowCenterY(posRow[s]);
-    const x = colX[maxDepth+1];
-    const midX = (from[0]+x)/2;
-    svg += `<path d="M ${from[0]},${from[1]} L ${midX},${from[1]} L ${midX},${y} L ${x},${y}" fill="none" stroke="${WIRE}" stroke-width="1"/>`;
-    svg += `<line x1="${x}" y1="${y}" x2="${x+24}" y2="${y}" stroke="${WIRE}" stroke-width="1"/>`;
-    svg += `<text x="${x+28}" y="${y+3}" font-size="9" fill="${TXT}" font-family="monospace" font-weight="bold">${s}</text>`;
-  });
-
-  const par = fitMode ? 'none' : 'xMidYMid meet';
-  return `<svg viewBox="-44 -8 ${totalW+44} ${totalH+8}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px;display:block">${svg}</svg>`;
-}
-
-function setNetlistViewMode(mode){
-  netlistViewMode = mode;
-  renderNetlist();
-  applyFitClass();
-}
-
-function renderNetlist(){
-  const vc = document.getElementById('vcont');
-
-  if(!lastNetlist){
-    vc.innerHTML = `
-    <div style="font-size:11px;color:var(--fg2);margin-bottom:8px">Gate-Level Netlist</div>
-    <div class="app-card">
-      <h4>🔩 No netlist yet</h4>
-      <p>Click <strong>🔩 Synthesize</strong> in the top toolbar to run Yosys on the current design.v
-      and generate a gate-level netlist here.</p>
-    </div>`;
-    return;
-  }
-
-  const stats = lastSynthStats;
-  let statsHtml = '';
-  if(stats){
-    const cellRows = Object.entries(stats.cells_by_type)
-      .sort((a,b)=>b[1]-a[1])
-      .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:2px 0">
-        <span style="color:var(--fg2)">${_escHtml(k)}</span><span style="color:var(--fg0)">${v}</span></div>`)
-      .join('');
-    statsHtml = `
-    <div class="app-card" style="flex-shrink:0">
-      <h4>📊 Synthesis Stats — top: ${_escHtml(lastSynthTop||'')}</h4>
-      <div style="display:flex;gap:16px;margin:6px 0;font-size:11px">
-        <div><strong style="color:var(--blue)">${stats.total_cells}</strong> cells</div>
-        <div><strong style="color:var(--blue)">${stats.wires}</strong> wires</div>
-        <div><strong style="color:var(--blue)">${stats.wire_bits}</strong> wire bits</div>
-      </div>
-      ${cellRows ? `<div style="font-size:10px;font-family:var(--font-mono);border-top:1px solid var(--bg3);padding-top:6px;margin-top:4px">${cellRows}</div>` : ''}
-    </div>`;
-  }
-
-  const toggleBar = `
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-shrink:0">
-    <span style="font-size:11px;color:var(--fg2)">Gate-Level Netlist</span>
-    <div style="display:flex;border:1px solid var(--bg3);border-radius:3px;overflow:hidden;margin-left:4px">
-      <button class="btn" style="padding:2px 9px;font-size:10px;border:none;border-radius:0;background:${netlistViewMode==='schematic'?'var(--blue-bg)':'var(--bg2)'};color:${netlistViewMode==='schematic'?'var(--blue)':'var(--fg2)'}"
-        onclick="setNetlistViewMode('schematic')">◈ Schematic</button>
-      <button class="btn" style="padding:2px 9px;font-size:10px;border:none;border-radius:0;background:${netlistViewMode==='code'?'var(--blue-bg)':'var(--bg2)'};color:${netlistViewMode==='code'?'var(--blue)':'var(--fg2)'}"
-        onclick="setNetlistViewMode('code')">📄 Code</button>
-    </div>
-    <div class="spacer"></div>
-    <button class="btn btn-default" style="padding:2px 8px;font-size:10px" onclick="copyNetlist()">⎘ Copy</button>
-    <button class="btn btn-default" style="padding:2px 8px;font-size:10px" onclick="downloadNetlist()">⬇ Download</button>
-  </div>`;
-
-  if(netlistViewMode === 'code'){
-    vc.innerHTML = `
-    ${toggleBar}
-    ${statsHtml}
-    <div class="app-card" style="padding:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column">
-      <pre style="margin:0;padding:10px;font-size:10px;line-height:1.5;color:var(--fg1);
-        flex:1;overflow:auto;font-family:var(--font-mono)">${_escHtml(lastNetlist)}</pre>
-    </div>`;
-    return;
-  }
-
-  // Schematic mode — parse the netlist into a gate graph and auto-layout
-  const svg = buildNetlistSchematicSVG(lastNetlist, fitModeOn);
-  if(!svg){
-    vc.innerHTML = `
-    ${toggleBar}
-    ${statsHtml}
-    <div class="app-card">
-      <h4>⚠ Couldn't parse gate-level structure</h4>
-      <p>This netlist doesn't match the expected generic-cell <code>assign</code> format.
-      Switch to <strong>📄 Code</strong> view to see the raw netlist.</p>
-    </div>`;
-    return;
-  }
-
-  vc.innerHTML = `
-  ${toggleBar}
-  <div class="fit-stretch" style="min-height:240px;overflow:${fitModeOn?'hidden':'auto'}">${svg}</div>
-  <div style="margin-top:6px;font-size:10px;color:var(--fg3);flex-shrink:0">
-    Auto-generated from the synthesized netlist — gates flow left→right by logic depth. Bubbles mark inverted inputs/outputs.
-  </div>`;
-}
-
-function copyNetlist(){
-  if(!lastNetlist) return;
-  navigator.clipboard.writeText(lastNetlist).then(()=>log('> Netlist copied to clipboard','ok'));
-}
-
-function downloadNetlist(){
-  if(!lastNetlist) return;
-  saveBlob(lastNetlist, (lastSynthTop||'netlist')+'_netlist.v');
-}
-
 function renderApps(){
   const vc = document.getElementById('vcont');
 
@@ -3185,6 +2122,7 @@ function renderApps(){
     return;
   }
 
+  // Custom design — no curated apps available, show a generic helpful card
   const p = extractPortsLocal(files.design);
   const seq = /posedge|negedge/.test(files.design);
   const comb = /always\s*@\s*\(\s*\*\s*\)|always\s*@\s*\*/.test(files.design);
@@ -3231,14 +2169,17 @@ function toggleSplit(){
     single.style.display = 'flex';
     btn.textContent = '⊟ Split';
     btn.title = 'Toggle split view';
+    // Sync any changes made in split back to main editor
     if(window._splitDesignEditor && window._splitTbEditor){
       files.design = window._splitDesignEditor.getValue();
       files.tb     = window._splitTbEditor.getValue();
+      // Update main Monaco models
       if(monacoReady){
         designModel.setValue(files.design);
         tbModel.setValue(files.tb);
       }
     }
+    // Restore focus to main editor current tab
     if(monacoReady) editor.focus();
   }
 }
@@ -3249,9 +2190,10 @@ function _initSplitEditors(){
   const designEl = document.getElementById('monaco-design-split');
   const tbEl     = document.getElementById('monaco-tb-split');
 
+  // Create split editors once
   if(!window._splitDesignEditor){
     window._splitDesignEditor = monaco.editor.create(designEl, {
-      model:               designModel,
+      model:               designModel,   // share same model — edits sync automatically
       theme:               'verilog-dark',
       fontFamily:          "'Courier New', monospace",
       fontSize:            12,
@@ -3278,7 +2220,7 @@ function _initSplitEditors(){
 
   if(!window._splitTbEditor){
     window._splitTbEditor = monaco.editor.create(tbEl, {
-      model:               tbModel,
+      model:               tbModel,       // share same model — edits sync automatically
       theme:               'verilog-dark',
       fontFamily:          "'Courier New', monospace",
       fontSize:            12,
@@ -3299,6 +2241,7 @@ function _initSplitEditors(){
       const p = window._splitTbEditor.getPosition();
       if(p) document.getElementById('lc-r').textContent = `Ln ${p.lineNumber}`;
     });
+    // keep files.tb in sync when editing in split tb pane
     window._splitTbEditor.onDidChangeModelContent(()=>{
       files.tb = tbModel.getValue();
       document.getElementById('dot-tb').className='sb-dot mod';
@@ -3316,7 +2259,6 @@ const VIEW_TITLES = {
   schema: '◈ Schematic',
   block:  '⬡ Block Diagram',
   vcd:    '📈 VCD Waveform',
-  netlist:'🔩 Netlist',
   apps:   '🌐 Real-World Apps',
 };
 
@@ -3326,130 +2268,26 @@ function openFullscreen(){
   const fsTitle = document.getElementById('fs-title');
   const fsBadge = document.getElementById('fs-badge');
 
+  // Clone current view content into fullscreen body
+  const vcont = document.getElementById('vcont');
+  fsBody.innerHTML = vcont.innerHTML;
   fsTitle.textContent = VIEW_TITLES[curView] || curView;
+
+  // Badge showing which view + current example
   fsBadge.textContent = curEx === 'custom' ? 'custom design' : curEx;
   fsBadge.className   = 'badge info';
 
   overlay.style.display = 'flex';
-  applyFsFitClass();
 
-  // Re-render the current view straight into the fullscreen body using
-  // fsFitModeOn (independent of the right panel's own fit-mode setting),
-  // rather than cloning the panel's HTML — clones would carry whatever
-  // preserveAspectRatio the panel happened to be using.
-  _renderIntoFullscreen(curView);
+  // Restart SVG animations inside fullscreen (cloned SVGs lose animation state)
+  fsBody.querySelectorAll('svg').forEach(svg=>{
+    const clone = svg.cloneNode(true);
+    svg.parentNode.replaceChild(clone, svg);
+  });
 
+  // Animate wave cursor if wave view
   if(curView === 'vcd' || curView === 'wave'){
     _startFsWaveCursor(fsBody);
-  }
-}
-
-function _renderIntoFullscreen(v){
-  const fsBody = document.getElementById('fs-body');
-  const par = fsFitModeOn ? 'none' : 'xMidYMid meet';
-
-  if(v === 'wave'){
-    const cfg = getWaveCfg(curEx);
-    const W=390,ROW=26,LBL=76,WAVE=W-LBL-6,H=cfg.sigs.length*ROW+30;
-    fsBody.innerHTML = `<div class="fit-stretch"><svg id="wave-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}">${buildWaveSVG(cfg,W,ROW,LBL,WAVE,H,0)}</svg></div>`;
-  } else if(v === 'schema'){
-    const known = !!SCHEMAS[curEx];
-    const sc = known ? SCHEMAS[curEx] : buildGenericSchema();
-    fsBody.innerHTML = `<div class="fit-stretch"><svg viewBox="-40 0 480 230" preserveAspectRatio="${par}">${sc}</svg></div>`;
-  } else if(v === 'block'){
-    const code=files.design;
-    const p=extractPortsLocal(code);
-    const ins=p.inputs, outs=p.outputs, mod=p.module;
-    const W=390, boxH=Math.max(120,Math.max(ins.length,outs.length)*28+50);
-    const H=boxH+50;
-    const MARGIN = 36;
-    let svg=`<svg viewBox="-${MARGIN} 0 ${W+MARGIN*2} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px">`;
-    svg+=`<defs><marker id="ba2" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto"><polygon points="0,0 5,2.5 0,5" fill="var(--blue)"/></marker></defs>`;
-    svg+=`<rect x="130" y="20" width="130" height="${boxH}" rx="5" fill="#0c1830" stroke="var(--blue)" stroke-width="2"/>`;
-    svg+=`<text x="195" y="${20+boxH/2-8}" font-size="14" fill="var(--blue)" text-anchor="middle" font-weight="bold">${mod}</text>`;
-    const langLabel=document.getElementById('lang').value==='systemverilog'?'SV':'Verilog';
-    svg+=`<text x="195" y="${20+boxH/2+10}" font-size="9" fill="var(--fg3)" text-anchor="middle">${langLabel}</text>`;
-    svg+=`<text x="195" y="${20+boxH/2+24}" font-size="9" fill="var(--fg3)" text-anchor="middle">${code.split('\n').length} lines</text>`;
-    ins.slice(0,8).forEach((nm,i)=>{
-      const y=36+i*28;
-      svg+=`<line x1="14" y1="${y}" x2="128" y2="${y}" stroke="var(--green)" stroke-width="1.5" marker-end="url(#ba2)"/>`;
-      svg+=`<text x="10" y="${y+3}" font-size="9" fill="var(--green)" text-anchor="end">${nm}</text>`;
-    });
-    outs.slice(0,8).forEach((nm,i)=>{
-      const y=36+i*28;
-      svg+=`<line x1="262" y1="${y}" x2="376" y2="${y}" stroke="var(--red)" stroke-width="1.5" marker-end="url(#ba2)"/>`;
-      svg+=`<text x="380" y="${y+3}" font-size="9" fill="var(--red)">${nm}</text>`;
-    });
-    svg+='</svg>';
-    fsBody.innerHTML = `<div class="fit-stretch">${svg}</div>`;
-  } else if(v === 'vcd'){
-    if(!lastVCD){
-      fsBody.innerHTML = `<div style="color:var(--fg2);font-size:13px;padding:40px;text-align:center">No VCD data yet. Run ⚡ Simulate first.</div>`;
-      return;
-    }
-    const {signals, timeUnit} = parseVCD(lastVCD);
-    const names = Object.keys(signals).slice(0,10);
-    let maxT=0;
-    names.forEach(n=>{const v2=signals[n];if(v2.vals.length) maxT=Math.max(maxT,v2.vals[v2.vals.length-1].t);});
-    maxT=maxT||1;
-    const W=390,ROW=26,LBL=80,WAVE=W-LBL-6,H=names.length*ROW+32;
-    let svg=`<svg id="wave-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="${par}" style="width:100%;height:100%;background:var(--bg0);border:1px solid var(--bg3);border-radius:4px;display:block">`;
-    svg+=`<line x1="${LBL}" y1="20" x2="${W-4}" y2="20" stroke="var(--bg3)" stroke-width="0.5"/>`;
-    for(let i=0;i<=4;i++){
-      const x=LBL+i*(WAVE/4), t=Math.round(maxT*i/4);
-      svg+=`<text x="${x}" y="13" font-size="9" fill="var(--fg3)" text-anchor="middle">${t}${timeUnit}</text>`;
-      svg+=`<line x1="${x}" y1="16" x2="${x}" y2="22" stroke="var(--bg3)" stroke-width="0.5"/>`;
-    }
-    names.forEach((n,i)=>{
-      const sig=signals[n];
-      const y=30+i*ROW,hi=y+2,lo=y+ROW-7,mid=y+ROW/2-1;
-      const col=sig.width>1?'var(--cyan)':'var(--green)';
-      svg+=`<text x="${LBL-4}" y="${mid+3}" font-size="10" fill="var(--fg2)" text-anchor="end">${n.slice(0,10)}</text>`;
-      if(sig.width===1){
-        let px=LBL,pv=sig.vals[0]?.v||'0';
-        sig.vals.forEach(({t,v})=>{
-          const x=Math.min(LBL+Math.round((t/maxT)*WAVE),W-6);
-          const cy=pv==='1'?hi:lo, ny=v==='1'?hi:lo;
-          svg+=`<line x1="${px}" y1="${cy}" x2="${x}" y2="${cy}" stroke="${col}" stroke-width="1.5"/>`;
-          if(cy!==ny) svg+=`<line x1="${x}" y1="${cy}" x2="${x}" y2="${ny}" stroke="${col}" stroke-width="1.5"/>`;
-          px=x; pv=v;
-        });
-        svg+=`<line x1="${px}" y1="${pv==='1'?hi:lo}" x2="${W-6}" y2="${pv==='1'?hi:lo}" stroke="${col}" stroke-width="1.5"/>`;
-      } else {
-        let px=LBL,pv=sig.vals[0]?.v||'x'.repeat(sig.width);
-        sig.vals.forEach(({t,v})=>{
-          const x=Math.min(LBL+Math.round((t/maxT)*WAVE),W-6);
-          if(x>px){
-            svg+=`<polygon points="${px+2},${hi} ${x-2},${hi} ${x-2},${lo} ${px+2},${lo}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8"/>`;
-            const segW=x-px;
-            if(segW>10) svg+=`<text x="${(px+x)/2}" y="${lo-1}" font-size="${segW<16?6.5:8}" fill="${col}" text-anchor="middle">${busLabel(pv)}</text>`;
-          }
-          px=x; pv=v;
-        });
-        if(W-6>px){
-          svg+=`<polygon points="${px+2},${hi} ${W-6},${hi} ${W-6},${lo} ${px+2},${lo}" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="0.8"/>`;
-          const segW=W-6-px;
-          if(segW>10) svg+=`<text x="${(px+W-6)/2}" y="${lo-1}" font-size="${segW<16?6.5:8}" fill="${col}" text-anchor="middle">${busLabel(pv)}</text>`;
-        }
-      }
-    });
-    svg+='</svg>';
-    fsBody.innerHTML = `<div class="fit-stretch">${svg}</div>`;
-  } else if(v === 'netlist'){
-    if(!lastNetlist){
-      fsBody.innerHTML = `<div style="color:var(--fg2);font-size:13px;padding:40px;text-align:center">No netlist yet. Run 🔩 Synthesize first.</div>`;
-      return;
-    }
-    if(netlistViewMode === 'code'){
-      fsBody.innerHTML = `<pre style="margin:0;padding:10px;font-size:11px;line-height:1.5;color:var(--fg1);height:100%;overflow:auto;font-family:var(--font-mono)">${_escHtml(lastNetlist)}</pre>`;
-    } else {
-      const svg = buildNetlistSchematicSVG(lastNetlist, fsFitModeOn);
-      fsBody.innerHTML = svg ? `<div class="fit-stretch">${svg}</div>` : `<div style="color:var(--fg2);padding:40px;text-align:center">Could not parse netlist structure.</div>`;
-    }
-  } else {
-    // apps / text content — just clone current panel HTML, fit-mode doesn't apply
-    const vcont = document.getElementById('vcont');
-    fsBody.innerHTML = vcont.innerHTML;
   }
 }
 
@@ -3462,16 +2300,18 @@ let _fsAnimId = null;
 function _stopFsAnim(){ if(_fsAnimId){ cancelAnimationFrame(_fsAnimId); _fsAnimId=null; } }
 
 function _startFsWaveCursor(fsBody){
+  // Animate a vertical cursor line across the SVG waveform in fullscreen
   const svg = fsBody.querySelector('svg[id="wave-svg"], svg');
   if(!svg) return;
   const vb = svg.viewBox?.baseVal;
   if(!vb) return;
   const W = vb.width, H = vb.height;
-  let x = 80;
+  let x = 80; // start after labels
   _stopFsAnim();
   (function tick(){
     x = (x + 0.6);
     if(x > W - 4) x = 80;
+    // remove previous cursor line
     const old = svg.getElementById('fs-cursor');
     if(old) old.remove();
     const line = document.createElementNS('http://www.w3.org/2000/svg','line');
@@ -3487,6 +2327,7 @@ function _startFsWaveCursor(fsBody){
   })();
 }
 
+// Close fullscreen on Escape key
 document.addEventListener('keydown', e=>{
   if(e.key === 'Escape'){
     const ov = document.getElementById('fullscreen-overlay');
@@ -3500,7 +2341,7 @@ document.addEventListener('keydown', e=>{
 });
 
 // ════════════════════════════════════════════════════════════════
-//  KEYBOARD SHORTCUTS
+//  KEYBOARD SHORTCUT
 // ════════════════════════════════════════════════════════════════
 document.addEventListener('keydown',e=>{
   if(e.ctrlKey||e.metaKey){
@@ -3508,8 +2349,6 @@ document.addEventListener('keydown',e=>{
     if(e.key==='\''){e.preventDefault();runSimulate();}
     if(e.key==='g'){e.preventDefault();generateTB();}
     if(e.key==='s'){e.preventDefault();showSaveModal();}
-    if(e.key==='d'){e.preventDefault();showAIDesignModal();}
-    if(e.key==='y'){e.preventDefault();runSynthesize();}
   }
 });
 
@@ -3519,106 +2358,7 @@ document.addEventListener('keydown',e=>{
 document.getElementById('save-modal').addEventListener('click',function(e){
   if(e.target===this) closeSaveModal();
 });
-document.getElementById('ai-design-modal').addEventListener('click',function(e){
-  if(e.target===this) closeAIDesignModal();
-});
-document.getElementById('ai-design-preview-modal').addEventListener('click',function(e){
-  if(e.target===this) closeAIDesignPreview();
-});
-document.getElementById('ai-design-name').addEventListener('keydown',function(e){
-  if(e.key==='Enter'){ e.preventDefault(); doGenerateDesign(); }
-});
 
-</script>
-
-</div><!-- /#app-content -->
-
-<!-- ═══════════════════════════════════ FIREBASE AUTH LOGIC ═══════════════════════════════════ -->
-<script>
-// ── 1. PASTE YOUR FIREBASE CONFIG HERE ──
-// Firebase Console → Project settings (⚙) → General → "Your apps" → Web app → SDK setup and configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDq9awL0vRnlGBYPRAsMwNkTODMXusmlBs",
-  authDomain: "verilogide.firebaseapp.com",
-  projectId: "verilogide",
-  storageBucket: "verilogide.firebasestorage.app",
-  messagingSenderId: "802325829685",
-  appId: "1:802325829685:web:c360a89694a82fe651f97c",
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const googleProvider = new firebase.auth.GoogleAuthProvider();
-
-let authMode = 'signin'; // 'signin' | 'signup'
-
-function setAuthMode(mode){
-  authMode = mode;
-  document.getElementById('tab-signin').classList.toggle('active', mode==='signin');
-  document.getElementById('tab-signup').classList.toggle('active', mode==='signup');
-  document.getElementById('auth-submit-btn').textContent = mode==='signin' ? 'Sign In' : 'Create Account';
-  document.getElementById('auth-error').textContent = '';
-}
-
-function showAuthError(err){
-  const map = {
-    'auth/invalid-email':        'Enter a valid email address.',
-    'auth/user-not-found':       'No account with that email — try Sign Up.',
-    'auth/wrong-password':       'Incorrect password.',
-    'auth/invalid-credential':   'Incorrect email or password.',
-    'auth/email-already-in-use': 'An account already exists — try Sign In.',
-    'auth/weak-password':        'Password must be at least 6 characters.',
-    'auth/popup-closed-by-user': '',
-  };
-  document.getElementById('auth-error').textContent = map[err.code] ?? err.message;
-}
-
-function submitEmailAuth(){
-  const email    = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  document.getElementById('auth-error').textContent = '';
-  if(!email || !password){
-    document.getElementById('auth-error').textContent = 'Enter both email and password.';
-    return;
-  }
-  const action = authMode === 'signin'
-    ? auth.signInWithEmailAndPassword(email, password)
-    : auth.createUserWithEmailAndPassword(email, password);
-  action.catch(showAuthError);
-}
-
-function signInWithGoogle(){
-  auth.signInWithPopup(googleProvider).catch(showAuthError);
-}
-
-function logOut(){
-  auth.signOut();
-}
-
-// Allow pressing Enter in the password field to submit
-document.getElementById('auth-password').addEventListener('keydown', e=>{
-  if(e.key==='Enter') submitEmailAuth();
-});
-
-// ── Auth state gate: show app only when logged in ──
-auth.onAuthStateChanged(user=>{
-  const overlay = document.getElementById('auth-overlay');
-  const app     = document.getElementById('app-content');
-  const badge   = document.getElementById('user-badge');
-
-  if(user){
-    overlay.classList.add('hidden');
-    app.style.display = '';
-    const photo = user.photoURL
-      ? `<img src="${user.photoURL}" referrerpolicy="no-referrer">`
-      : '';
-    badge.innerHTML = `${photo}<span>${user.email || user.displayName || 'Signed in'}</span>`;
-  } else {
-    overlay.classList.remove('hidden');
-    app.style.display = 'none';
-    badge.innerHTML = '';
-  }
-});
 </script>
 </body>
 </html>
