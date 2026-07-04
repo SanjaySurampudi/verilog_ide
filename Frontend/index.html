@@ -492,8 +492,9 @@ select option{background:var(--bg1)}
     <div class="c-muted" id="ai-key-status" style="margin-top:6px;font-size:12px"></div>
     <div class="modal-btns">
       <button class="btn btn-default" onclick="clearAIKey()">Clear key</button>
+      <button class="btn btn-default" onclick="testAIKeyBtn()" id="ai-key-test-btn">Test key</button>
       <button class="btn btn-default" onclick="closeAIKeyModal()">Cancel</button>
-      <button class="btn btn-purple" onclick="saveAIKey()">Save</button>
+      <button class="btn btn-purple" onclick="saveAIKey()" id="ai-key-save-btn">Save</button>
     </div>
   </div>
 </div>
@@ -1478,9 +1479,9 @@ function showAIKeyModal(){
   const s = getAIKeySettings();
   document.getElementById('ai-key-provider').value = s ? s.provider : 'gemini';
   document.getElementById('ai-key-value').value = s ? s.apiKey : '';
-  document.getElementById('ai-key-status').textContent = s
+  setAIKeyStatus(s
     ? `Currently using your ${s.provider} key.`
-    : 'No personal key set — using the shared server key (if configured).';
+    : 'No personal key set — add one below to use AI Testbench / AI Design.', '');
   document.getElementById('ai-key-modal').style.display = 'flex';
 }
 
@@ -1488,18 +1489,77 @@ function closeAIKeyModal(){
   document.getElementById('ai-key-modal').style.display = 'none';
 }
 
-function saveAIKey(){
+function setAIKeyStatus(text, kind){
+  // kind: '' (neutral/muted), 'ok' (green), 'err' (red)
+  const el = document.getElementById('ai-key-status');
+  el.textContent = text;
+  el.style.color = kind === 'ok' ? '#4caf50' : kind === 'err' ? '#e05252' : '';
+}
+
+// Calls the real backend /validate-key endpoint, which makes one small live
+// call to the chosen provider using the given key — this is the only way
+// to actually know whether a key is correct or wrong.
+async function _validateAIKey(provider, apiKey){
+  const r = await fetch(API+'/validate-key', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({provider, api_key: apiKey})
+  });
+  if(!r.ok){
+    const err = await r.json().catch(()=>({detail:r.statusText}));
+    throw new Error(err.detail || r.statusText);
+  }
+  return r.json(); // {valid: bool, message: str}
+}
+
+async function testAIKeyBtn(){
+  const provider = document.getElementById('ai-key-provider').value;
+  const apiKey   = document.getElementById('ai-key-value').value.trim();
+  if(!apiKey){ setAIKeyStatus('Enter a key first.', 'err'); return false; }
+
+  const btn = document.getElementById('ai-key-test-btn');
+  btn.disabled = true; btn.textContent = 'Testing…';
+  setAIKeyStatus('Testing key against ' + provider + '…', '');
+  try{
+    const d = await _validateAIKey(provider, apiKey);
+    if(d.valid){
+      setAIKeyStatus('✓ ' + d.message, 'ok');
+      return true;
+    } else {
+      setAIKeyStatus('✗ Key rejected — ' + d.message, 'err');
+      return false;
+    }
+  }catch(e){
+    setAIKeyStatus('✗ Could not reach backend to test key: ' + e.message, 'err');
+    return false;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Test key';
+  }
+}
+
+async function saveAIKey(){
   const provider = document.getElementById('ai-key-provider').value;
   const apiKey   = document.getElementById('ai-key-value').value.trim();
   if(!apiKey){
-    log('[!] Enter an API key first, or use "Clear key" to remove it','warn');
+    setAIKeyStatus('Enter an API key first, or use "Clear key" to remove it.', 'err');
     return;
   }
+
+  const saveBtn = document.getElementById('ai-key-save-btn');
+  saveBtn.disabled = true; saveBtn.textContent = 'Checking…';
+  const ok = await testAIKeyBtn();
+  saveBtn.disabled = false; saveBtn.textContent = 'Save';
+
+  if(!ok){
+    log(`[!] That ${provider} key did not validate — check it and try again`,'warn');
+    return; // don't save a key we know is broken
+  }
+
   localStorage.setItem(AI_KEY_LS_PROVIDER, provider);
   localStorage.setItem(AI_KEY_LS_VALUE, apiKey);
   updateAIKeyBtnLabel();
   closeAIKeyModal();
-  log(`> Using your own ${provider} key for AI Testbench / AI Design`,'ok');
+  log(`> Saved and verified your ${provider} key — using it for AI Testbench / AI Design`,'ok');
 }
 
 function clearAIKey(){
@@ -1507,9 +1567,8 @@ function clearAIKey(){
   localStorage.removeItem(AI_KEY_LS_VALUE);
   document.getElementById('ai-key-value').value = '';
   updateAIKeyBtnLabel();
-  document.getElementById('ai-key-status').textContent =
-    'No personal key set — using the shared server key (if configured).';
-  log('> Cleared your personal AI key — back to server default','info');
+  setAIKeyStatus('No personal key set — add one above to use AI Testbench / AI Design.', '');
+  log('> Cleared your personal AI key','info');
 }
 
 // Reflect saved key state on the toolbar button as soon as the page loads
@@ -1519,19 +1578,25 @@ document.addEventListener('DOMContentLoaded', updateAIKeyBtnLabel);
 //  AI TESTBENCH
 // ════════════════════════════════════════════════════════════════
 async function generateTB(){
+  const keySettings = getAIKeySettings();
+  if(!keySettings){
+    log('[!] No AI API key set — add your own key to use AI Testbench','warn');
+    showAIKeyModal();
+    return;
+  }
+
   clrConsole(); setStat('run','Generating…');
   log('✦ Requesting AI testbench…','ai');
   const lang=document.getElementById('lang').value;
 
   if(backendLive){
     try{
-      const keySettings = getAIKeySettings();
       const r=await fetch(API+'/generate-testbench',{method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           design:files.design, language:lang,
-          api_key: keySettings ? keySettings.apiKey : null,
-          provider: keySettings ? keySettings.provider : null
+          api_key: keySettings.apiKey,
+          provider: keySettings.provider
         })});
       const d=await r.json();
       if(d.success){
@@ -1677,6 +1742,11 @@ function extractPortsLocal(code){
 let _aiDesignResult = null;
 
 function showAIDesignModal(){
+  if(!getAIKeySettings()){
+    log('[!] No AI API key set — add your own key to use AI Design','warn');
+    showAIKeyModal();
+    return;
+  }
   document.getElementById('ai-design-modal').style.display='flex';
   document.getElementById('ai-design-name').focus();
 }
@@ -1685,6 +1755,14 @@ function closeAIDesignModal(){
 }
 
 async function doGenerateDesign(){
+  const keySettings = getAIKeySettings();
+  if(!keySettings){
+    log('[!] No AI API key set — add your own key to use AI Design','warn');
+    closeAIDesignModal();
+    showAIKeyModal();
+    return;
+  }
+
   const name = document.getElementById('ai-design-name').value.trim();
   const spec = document.getElementById('ai-design-spec').value.trim();
   if(!name){
@@ -1707,13 +1785,12 @@ async function doGenerateDesign(){
   }
 
   try{
-    const keySettings = getAIKeySettings();
     const r = await fetch(API+'/generate-design',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         name, spec: spec || null, language: lang,
-        api_key: keySettings ? keySettings.apiKey : null,
-        provider: keySettings ? keySettings.provider : null
+        api_key: keySettings.apiKey,
+        provider: keySettings.provider
       })});
     if(!r.ok){
       const err = await r.json().catch(()=>({detail:r.statusText}));
