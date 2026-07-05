@@ -3480,7 +3480,7 @@ document.getElementById('ai-design-name').addEventListener('keydown',function(e)
 document.body.style.visibility = 'hidden'; // avoid flashing the IDE before auth check resolves
 
 auth.onAuthStateChanged(user=>{
-  if(!user){
+  if(!user || !user.emailVerified){
     window.location.href = 'login.html';
     return;
   }
