@@ -251,7 +251,19 @@ select option{background:var(--bg1)}
   padding:3px 7px;border-radius:var(--radius);border:1px solid var(--bg3);
   white-space:nowrap;z-index:50;pointer-events:none}
 </style>
+<!-- ═══════════════════════════════════ FIREBASE AUTH GUARD (must load BEFORE Monaco's AMD loader) ═══════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<style>
+.user-badge{display:flex;align-items:center;gap:6px;color:var(--fg2);font-size:12px}
+.user-badge img{width:20px;height:20px;border-radius:50%}
+#logout-btn{background:var(--bg2);color:var(--fg2);border:1px solid var(--bg3);border-radius:4px;
+  padding:4px 8px;font-size:11px;cursor:pointer;font-family:var(--font-mono)}
+#logout-btn:hover{background:var(--bg3);color:var(--fg0)}
+</style>
 </head>
 <body>
 
@@ -274,6 +286,8 @@ select option{background:var(--bg1)}
 
   <span id="be-pill" class="dead">● backend offline</span>
   <div class="status"><span class="sdot" id="sdot"></span><span id="stext">Ready</span></div>
+  <div class="user-badge" id="user-badge"></div>
+  <button id="logout-btn" onclick="logOut()">Log out</button>
 </div>
 
 <!-- ═══════════════════════════════════ MAIN ═══════════════════════════════════ -->
@@ -3459,6 +3473,26 @@ document.getElementById('ai-design-name').addEventListener('keydown',function(e)
   if(e.key==='Enter'){ e.preventDefault(); doGenerateDesign(); }
 });
 
+</script>
+
+<!-- ═══════════════════════════════════ AUTH GUARD ═══════════════════════════════════ -->
+<script>
+document.body.style.visibility = 'hidden'; // avoid flashing the IDE before auth check resolves
+
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    window.location.href = 'login.html';
+    return;
+  }
+  document.body.style.visibility = 'visible';
+  const badge = document.getElementById('user-badge');
+  const photo = user.photoURL ? `<img src="${user.photoURL}" referrerpolicy="no-referrer">` : '';
+  badge.innerHTML = `${photo}<span>${user.email || user.displayName || 'Signed in'}</span>`;
+});
+
+function logOut(){
+  auth.signOut().then(()=>{ window.location.href = 'login.html'; });
+}
 </script>
 </body>
 </html>
