@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VerilogIDE — HDL Design Environment</title>
-<style>
+<meta name="description" content="VerilogIDE — A professional, AI-powered HDL design environment for Verilog and SystemVerilog. Compile, simulate, synthesize, and visualize your hardware designs.">
+<title>VerilogIDE — Professional HDL Design Environment</title>
 <link rel="stylesheet" href="styles.css">
 <!-- ═══════════════════════════════════ FIREBASE AUTH GUARD (must load BEFORE Monaco's AMD loader) ═══════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -18,6 +18,7 @@
 <!-- ═══════════════════════════════════ TOP BAR ═══════════════════════════════════ -->
 <div class="topbar">
   <span class="logo">⬡ Verilog<span>IDE</span></span>
+  <div class="topbar-sep"></div>
 
   <button class="btn btn-green" onclick="runCompile()" data-tip="Syntax check with Icarus Verilog">▶ Compile</button>
   <button class="btn btn-blue"  onclick="runSimulate()" data-tip="Compile + run vvp simulation">⚡ Simulate</button>
@@ -34,6 +35,8 @@
 
   <span id="be-pill" class="dead">● backend offline</span>
   <div class="status"><span class="sdot" id="sdot"></span><span id="stext">Ready</span></div>
+  <div class="topbar-sep"></div>
+  <button id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light/dark theme">🌙</button>
   <div class="user-badge" id="user-badge"></div>
   <button id="logout-btn" onclick="logOut()">Log out</button>
 </div>
@@ -274,6 +277,26 @@
 </div>
 
 <script src="script.js"></script>
+<script>
+// ── Theme toggle ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('theme-toggle-btn').textContent = next === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('vide-theme', next);
+}
+// Restore saved theme
+(function(){
+  const saved = localStorage.getItem('vide-theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+  }
+})();
+</script>
 
 <!-- ═══════════════════════════════════ AUTH GUARD ═══════════════════════════════════ -->
 </body>
